@@ -273,3 +273,59 @@ html, body {
   z-index: 1;
   pointer-events: none;
 }
+
+.landing-actions {
+  position: fixed;
+  left: 50%;
+  bottom: 200px;
+  display: flex;
+  gap: 3.5rem;
+  transform: translateX(-50%);
+  z-index: 3;
+}
+
+.action-card-wrapper.left {
+  transform: translateX(-60%);
+}
+.action-card-wrapper.right {
+  transform: translateX(60%);
+}
+
+.action-card {
+  background: rgba(255,255,255,0.08);
+  border-radius: 18px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+  padding: 2.2rem 2.8rem 1.6rem 2.8rem;
+  min-width: 170px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+  transition: transform 0.25s cubic-bezier(.4,2,.6,1), box-shadow 0.25s;
+  border: 2px solid transparent;
+  position: relative;
+  user-select: none;
+}
+.action-card span {
+  font-size: 2.2rem;
+  margin-bottom: 0.7rem;
+  display: block;
+}
+.action-card:hover {
+  transform: scale(1.08);
+  box-shadow: 0 8px 32px rgba(0,255,135,0.18);
+  border: 2px solid #60efff;
+  background: rgba(0,255,135,0.10);
+}
+@media (max-width: 900px) {
+  .landing-actions {
+    gap: 1.2rem;
+    bottom: 170px;
+  }
+  .action-card-wrapper.left, .action-card-wrapper.right {
+    transform: translateX(0);
+  }
+}

@@ -77,6 +77,25 @@ function AnimatedStaff({ bottom = false }) {
   );
 }
 
+function LandingActions() {
+  return (
+    <div className="landing-actions">
+      <div className="action-card-wrapper left">
+        <div className="action-card">
+          <span role="img" aria-label="Host">🎤</span>
+          <div>Host Quiz</div>
+        </div>
+      </div>
+      <div className="action-card-wrapper right">
+        <div className="action-card">
+          <span role="img" aria-label="Join">🔗</span>
+          <div>Join Quiz</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function App() {
   return (
     <div className="landing-container">
@@ -84,6 +103,7 @@ function App() {
       <AnimatedStaff bottom />
       <h1 className="title">Music Quiz</h1>
       <div className="subtitle">Test your music knowledge!</div>
+      <LandingActions />
     </div>
   );
 }
