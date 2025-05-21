@@ -97,9 +97,9 @@ function LandingActions({ onHostClick }) {
   );
 }
 
-function RoundCountSelector({ value, onChange }) {
+function RoundCountSelector({ value, onChange, selectedRounds, errorAnim }) {
   return (
-    <div className="round-count-selector">
+    <div className={`round-count-selector${errorAnim ? ' error-anim' : ''}`}>
       <div className="round-count-label">Select Number of Rounds</div>
       <div className="round-count-scroll">
         {[3, 4, 5, 6].map((num) => (
@@ -174,10 +174,71 @@ function RoundInfoModal({ round, onClose }) {
   );
 }
 
-function QuizBottomPanel({ openPanel, onClose }) {
+function SelectRoundsPanel({ roundCount, selectedRounds, setSelectedRounds }) {
+  const dummyRounds = [
+    { id: 1, name: 'Round A', description: '' },
+    { id: 2, name: 'Round B', description: '' },
+    { id: 3, name: 'Round C', description: '' },
+    { id: 4, name: 'Round D', description: '' },
+    { id: 5, name: 'Round E', description: '' },
+    { id: 6, name: 'Round F', description: '' },
+    { id: 7, name: 'Round G', description: '' },
+  ];
+  const [currentIdx, setCurrentIdx] = useState(0);
+  const currentRound = dummyRounds[currentIdx];
+  const isSelected = selectedRounds.some(r => r.id === currentRound.id);
+  const maxSelected = selectedRounds.length >= roundCount;
+  const [clicked, setClicked] = useState(false);
+
+  function handlePrev() {
+    setCurrentIdx((prev) => (prev - 1 + dummyRounds.length) % dummyRounds.length);
+  }
+  function handleNext() {
+    setCurrentIdx((prev) => (prev + 1) % dummyRounds.length);
+  }
+  function handleSelect() {
+    if (isSelected) {
+      setSelectedRounds(selectedRounds.filter(r => r.id !== currentRound.id));
+    } else if (!maxSelected) {
+      setSelectedRounds([...selectedRounds, currentRound]);
+      setClicked(true);
+      setTimeout(() => setClicked(false), 180);
+    }
+  }
+
+  return (
+    <div className="select-rounds-panel-2col">
+      <div className="select-rounds-left">
+        <div className="round-arrows-row top-arrows">
+          <button className="round-arrow-btn minimal" onClick={handlePrev} aria-label="Previous Round">
+            <span className="arrow-shape">&#8592;</span>
+          </button>
+          <button className="round-arrow-btn minimal" onClick={handleNext} aria-label="Next Round">
+            <span className="arrow-shape">&#8594;</span>
+          </button>
+        </div>
+        <div
+          className={`big-round-box big${clicked ? ' clicked' : ''}${isSelected ? ' selected' : ''}${maxSelected && !isSelected ? ' disabled' : ''}`}
+          onClick={handleSelect}
+          tabIndex={0}
+          role="button"
+        >
+          {currentRound.name}
+          {isSelected && <span className="round-selected-check">✓</span>}
+        </div>
+      </div>
+      <div className="select-rounds-right">
+        <div className="round-desc-title right-align">Round Description</div>
+        <div className="round-desc-blank">{currentRound.description}</div>
+      </div>
+    </div>
+  );
+}
+
+function QuizBottomPanel({ openPanel, onClose, roundCount, selectedRounds, setSelectedRounds }) {
   if (!openPanel) return null;
   let content = null;
-  if (openPanel === 'select') content = <div className="panel-content">Select Rounds Panel</div>;
+  if (openPanel === 'select') content = <SelectRoundsPanel roundCount={roundCount} selectedRounds={selectedRounds} setSelectedRounds={setSelectedRounds} />;
   if (openPanel === 'edit') content = <div className="panel-content">Edit Rounds Panel</div>;
   if (openPanel === 'settings') content = <div className="panel-content">Game Settings Panel</div>;
   return (
@@ -213,6 +274,17 @@ function QuizActionButtons({ openPanel, setOpenPanel }) {
 function QuizCreationScreen({ onBack }) {
   const [roundCount, setRoundCount] = useState(3);
   const [openPanel, setOpenPanel] = useState(null);
+  const [selectedRounds, setSelectedRounds] = useState([]);
+  const [errorAnim, setErrorAnim] = useState(false);
+
+  function handleRoundCountChange(newCount) {
+    if (selectedRounds.length > newCount) {
+      setErrorAnim(true);
+      setTimeout(() => setErrorAnim(false), 500);
+      return;
+    }
+    setRoundCount(newCount);
+  }
 
   return (
     <div className="quiz-creation-screen">
@@ -220,9 +292,9 @@ function QuizCreationScreen({ onBack }) {
         <span className="back-arrow" aria-hidden="true">&#8592;</span> Back
       </button>
       <div className="quiz-creation-center-area">
-        <RoundCountSelector value={roundCount} onChange={setRoundCount} />
+        <RoundCountSelector value={roundCount} onChange={handleRoundCountChange} selectedRounds={selectedRounds} errorAnim={errorAnim} />
         <QuizActionButtons openPanel={openPanel} setOpenPanel={setOpenPanel} />
-        <QuizBottomPanel openPanel={openPanel} onClose={() => setOpenPanel(null)} />
+        <QuizBottomPanel openPanel={openPanel} onClose={() => setOpenPanel(null)} roundCount={roundCount} selectedRounds={selectedRounds} setSelectedRounds={setSelectedRounds} />
       </div>
     </div>
   );
