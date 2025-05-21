@@ -271,6 +271,26 @@ function QuizActionButtons({ openPanel, setOpenPanel }) {
   );
 }
 
+function SelectedRoundsShowcase({ selectedRounds, setSelectedRounds }) {
+  function handleUnselect(idx) {
+    const round = selectedRounds[idx];
+    setSelectedRounds(selectedRounds.filter(r => r.id !== round.id));
+  }
+  return (
+    <div className="selected-rounds-showcase-outer">
+      <div className="showcase-title">Game Rounds</div>
+      <div className="selected-rounds-showcase-row centered">
+        {selectedRounds.map((round, i) => (
+          <div className="showcase-slot showcase-oblong" key={round.id} onClick={() => handleUnselect(i)} tabIndex={0} role="button">
+            <div className="showcase-slot-label">Round {i + 1}</div>
+            <div className="showcase-slot-name">{round.name}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function QuizCreationScreen({ onBack }) {
   const [roundCount, setRoundCount] = useState(3);
   const [openPanel, setOpenPanel] = useState(null);
@@ -294,6 +314,9 @@ function QuizCreationScreen({ onBack }) {
       <div className="quiz-creation-center-area">
         <RoundCountSelector value={roundCount} onChange={handleRoundCountChange} selectedRounds={selectedRounds} errorAnim={errorAnim} />
         <QuizActionButtons openPanel={openPanel} setOpenPanel={setOpenPanel} />
+        {openPanel === null && (
+          <SelectedRoundsShowcase selectedRounds={selectedRounds} setSelectedRounds={setSelectedRounds} />
+        )}
         <QuizBottomPanel openPanel={openPanel} onClose={() => setOpenPanel(null)} roundCount={roundCount} selectedRounds={selectedRounds} setSelectedRounds={setSelectedRounds} />
       </div>
     </div>
