@@ -174,8 +174,45 @@ function RoundInfoModal({ round, onClose }) {
   );
 }
 
+function QuizBottomPanel({ openPanel, onClose }) {
+  if (!openPanel) return null;
+  let content = null;
+  if (openPanel === 'select') content = <div className="panel-content">Select Rounds Panel</div>;
+  if (openPanel === 'edit') content = <div className="panel-content">Edit Rounds Panel</div>;
+  if (openPanel === 'settings') content = <div className="panel-content">Game Settings Panel</div>;
+  return (
+    <div className={`quiz-bottom-panel embedded show`}>
+      <button className="panel-close-btn" onClick={onClose} title="Close">×</button>
+      {content}
+    </div>
+  );
+}
+
+function QuizActionButtons({ openPanel, setOpenPanel }) {
+  function handleClick(panel) {
+    setOpenPanel(openPanel === panel ? null : panel);
+  }
+  return (
+    <div className="quiz-action-buttons-row">
+      <button className={`quiz-action-btn${openPanel === 'select' ? ' active' : ''}`} onClick={() => handleClick('select')}>
+        <span className="quiz-action-icon" role="img" aria-label="Select Rounds">🎯</span>
+        Select Rounds
+      </button>
+      <button className={`quiz-action-btn${openPanel === 'edit' ? ' active' : ''}`} onClick={() => handleClick('edit')}>
+        <span className="quiz-action-icon" role="img" aria-label="Edit Rounds">✏️</span>
+        Edit Rounds
+      </button>
+      <button className={`quiz-action-btn${openPanel === 'settings' ? ' active' : ''}`} onClick={() => handleClick('settings')}>
+        <span className="quiz-action-icon" role="img" aria-label="Game Settings">⚙️</span>
+        Game Settings
+      </button>
+    </div>
+  );
+}
+
 function QuizCreationScreen({ onBack }) {
   const [roundCount, setRoundCount] = useState(3);
+  const [openPanel, setOpenPanel] = useState(null);
 
   return (
     <div className="quiz-creation-screen">
@@ -184,6 +221,8 @@ function QuizCreationScreen({ onBack }) {
       </button>
       <div className="quiz-creation-center-area">
         <RoundCountSelector value={roundCount} onChange={setRoundCount} />
+        <QuizActionButtons openPanel={openPanel} setOpenPanel={setOpenPanel} />
+        <QuizBottomPanel openPanel={openPanel} onClose={() => setOpenPanel(null)} />
       </div>
     </div>
   );
