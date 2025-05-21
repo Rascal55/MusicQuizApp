@@ -1100,7 +1100,7 @@ html, body {
 }
 .big-round-box.selected {
   background: linear-gradient(45deg, #00ff87, #60efff);
-  color: #181e2a;
+  color: #fff;
   border: 2px solid #60efff;
   transform: scale(1.04);
   box-shadow: 0 8px 24px 0 #00ff8766, 0 2px 8px 0 #60efff44;
@@ -1116,7 +1116,7 @@ html, body {
 }
 .big-round-box:hover {
   background: linear-gradient(45deg, #00ff87cc, #60efffcc);
-  color: #181e2a;
+  color: #fff;
   box-shadow: 0 10px 36px 0 rgba(0,255,135,0.18);
   border: 2px solid #60efff;
   transform: scale(1.06);
@@ -1345,4 +1345,8 @@ html, body {
     height: 64px;
     padding: 0.7rem 1.1rem 0.7rem 1.1rem;
   }
+}
+
+.big-round-box.big.intro-drop-bg {
+  background-image: none;
 }

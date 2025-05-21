@@ -176,13 +176,42 @@ function RoundInfoModal({ round, onClose }) {
 
 function SelectRoundsPanel({ roundCount, selectedRounds, setSelectedRounds }) {
   const dummyRounds = [
-    { id: 1, name: 'Round A', description: '' },
-    { id: 2, name: 'Round B', description: '' },
-    { id: 3, name: 'Round C', description: '' },
-    { id: 4, name: 'Round D', description: '' },
-    { id: 5, name: 'Round E', description: '' },
-    { id: 6, name: 'Round F', description: '' },
-    { id: 7, name: 'Round G', description: '' },
+    {
+      id: 1,
+      name: 'Intro Drop',
+      description:
+        "The song starts and a timer begins. After a few seconds, the music mutes—but the timer keeps going! Tap when you think the singer says the first word. Closest guess wins the points. Timing is everything!"
+    },
+    {
+      id: 2,
+      name: 'Movie Match',
+      description:
+        'When the question begins, a song from a movie soundtrack will play for a set amount of time. Your goal: be the first to name the film the song comes from! Points go to the 1st, 2nd, and 3rd fastest players who guess correctly—so listen closely and answer fast!'
+    },
+    {
+      id: 3,
+      name: 'Tune Dash',
+      description:
+        'When the question starts, a random part of a song will play for a set amount of time. Be the first to guess the correct song! Points go to the 1st, 2nd, and 3rd fastest players who answer correctly.'
+    },
+    {
+      id: 4,
+      name: 'Album Gamble',
+      description:
+        "When a question starts, the name and cover of an album will be shown. You'll have a set amount of time to pick a song from the album. If you pick the correct song, you get points. But beware: if someone else picks the same answer as you, both of you lose your points and get zero for that question!"
+    },
+    {
+      id: 5,
+      name: 'Hit Year',
+      description:
+        'A #1 hit plays for a few seconds. Guess the year it topped the charts! Closest player (or players) wins the points.'
+    },
+    {
+      id: 6,
+      name: 'Cover Clash',
+      description:
+        'Hear a cover version of a famous song. Name the original artist for points, and get double points if you also name the song! Points go to the 1st, 2nd, and 3rd fastest correct answers.'
+    },
   ];
   const [currentIdx, setCurrentIdx] = useState(0);
   const currentRound = dummyRounds[currentIdx];
