@@ -264,11 +264,58 @@ function SelectRoundsPanel({ roundCount, selectedRounds, setSelectedRounds }) {
   );
 }
 
+// --- New RoundSettingsPanel ---
+function RoundSettingsPanel({ selectedRounds, currentIdx, setCurrentIdx, errorAnim }) {
+  if (!selectedRounds.length) return null;
+  const round = selectedRounds[currentIdx];
+  return (
+    <div className={`round-settings-panel${errorAnim ? ' error-anim' : ''}`} style={{ width: '100%' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', marginBottom: '2rem' }}>
+        <button
+          className="round-arrow-btn minimal"
+          style={{ position: 'absolute', left: 0 }}
+          onClick={() => setCurrentIdx((currentIdx - 1 + selectedRounds.length) % selectedRounds.length)}
+          aria-label="Previous Round"
+        >
+          <span className="arrow-shape">&#8592;</span>
+        </button>
+        <div className="round-settings-title" style={{ fontSize: '2rem', fontWeight: 900, background: 'linear-gradient(45deg, #00ff87, #60efff)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', textFillColor: 'transparent', textAlign: 'center', padding: '0 3.5rem' }}>
+          {`Round ${currentIdx + 1}: ${round.name}`}
+        </div>
+        <button
+          className="round-arrow-btn minimal"
+          style={{ position: 'absolute', right: 0 }}
+          onClick={() => setCurrentIdx((currentIdx + 1) % selectedRounds.length)}
+          aria-label="Next Round"
+        >
+          <span className="arrow-shape">&#8594;</span>
+        </button>
+      </div>
+      {/* Settings UI goes here */}
+      <div style={{ color: '#aaa', textAlign: 'center' }}>
+        <em>Settings for this round will appear here.</em>
+      </div>
+    </div>
+  );
+}
+
 function QuizBottomPanel({ openPanel, onClose, roundCount, selectedRounds, setSelectedRounds }) {
-  if (!openPanel) return null;
+  const [settingsIdx, setSettingsIdx] = useState(0);
+  const [settingsErrorAnim, setSettingsErrorAnim] = useState(false);
+  useEffect(() => {
+    if (settingsIdx >= selectedRounds.length) setSettingsIdx(0);
+  }, [selectedRounds.length]);
   let content = null;
+  if (!openPanel) return null;
   if (openPanel === 'select') content = <SelectRoundsPanel roundCount={roundCount} selectedRounds={selectedRounds} setSelectedRounds={setSelectedRounds} />;
-  if (openPanel === 'edit') content = <div className="panel-content">Edit Rounds Panel</div>;
+  if (openPanel === 'edit') {
+    if (!selectedRounds.length) {
+      // Error animation if no rounds selected
+      setSettingsErrorAnim(true);
+      setTimeout(() => setSettingsErrorAnim(false), 500);
+    }
+    content = <RoundSettingsPanel selectedRounds={selectedRounds} currentIdx={settingsIdx} setCurrentIdx={setSettingsIdx} errorAnim={settingsErrorAnim} />;
+  }
   if (openPanel === 'settings') content = <div className="panel-content">Game Settings Panel</div>;
   return (
     <div className={`quiz-bottom-panel embedded show`}>
@@ -278,8 +325,14 @@ function QuizBottomPanel({ openPanel, onClose, roundCount, selectedRounds, setSe
   );
 }
 
-function QuizActionButtons({ openPanel, setOpenPanel }) {
+function QuizActionButtons({ openPanel, setOpenPanel, selectedRounds, setErrorAnim }) {
+  const [errorBtn, setErrorBtn] = useState(false);
   function handleClick(panel) {
+    if (panel === 'edit' && selectedRounds.length === 0) {
+      setErrorBtn(true);
+      setTimeout(() => setErrorBtn(false), 500);
+      return;
+    }
     setOpenPanel(openPanel === panel ? null : panel);
   }
   return (
@@ -288,12 +341,12 @@ function QuizActionButtons({ openPanel, setOpenPanel }) {
         <span className="quiz-action-icon" role="img" aria-label="Select Rounds">🎯</span>
         Select Rounds
       </button>
-      <button className={`quiz-action-btn${openPanel === 'edit' ? ' active' : ''}`} onClick={() => handleClick('edit')}>
-        <span className="quiz-action-icon" role="img" aria-label="Edit Rounds">✏️</span>
-        Edit Rounds
+      <button className={`quiz-action-btn${openPanel === 'edit' ? ' active' : ''}${errorBtn ? ' error-btn' : ''}`} onClick={() => handleClick('edit')}>
+        <span className="quiz-action-icon" role="img" aria-label="Round Settings">⚙️</span>
+        Round Settings
       </button>
       <button className={`quiz-action-btn${openPanel === 'settings' ? ' active' : ''}`} onClick={() => handleClick('settings')}>
-        <span className="quiz-action-icon" role="img" aria-label="Game Settings">⚙️</span>
+        <span className="quiz-action-icon" role="img" aria-label="Game Settings">🛠️</span>
         Game Settings
       </button>
     </div>
@@ -342,7 +395,7 @@ function QuizCreationScreen({ onBack }) {
       </button>
       <div className="quiz-creation-center-area">
         <RoundCountSelector value={roundCount} onChange={handleRoundCountChange} selectedRounds={selectedRounds} errorAnim={errorAnim} />
-        <QuizActionButtons openPanel={openPanel} setOpenPanel={setOpenPanel} />
+        <QuizActionButtons openPanel={openPanel} setOpenPanel={setOpenPanel} selectedRounds={selectedRounds} setErrorAnim={setErrorAnim} />
         {openPanel === null && (
           <SelectedRoundsShowcase selectedRounds={selectedRounds} setSelectedRounds={setSelectedRounds} />
         )}
