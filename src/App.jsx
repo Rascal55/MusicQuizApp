@@ -454,8 +454,9 @@ function SelectedRoundsShowcase({ selectedRounds, setSelectedRounds }) {
   );
 }
 
-function SettingsPage({ onBack }) {
-  const [tab, setTab] = useState('game'); // 'game' or 'round'
+function SettingsPage({ onBack, selectedRounds = [] }) {
+  const [tab, setTab] = useState('round'); // 'round' or 'game'
+  const [activeRoundIdx, setActiveRoundIdx] = useState(0);
 
   // Placeholder state for settings
   const [gameSettings, setGameSettings] = useState({});
@@ -470,45 +471,76 @@ function SettingsPage({ onBack }) {
     alert('Settings reset to defaults!');
   }
 
+  // Carousel navigation
+  function goLeft() {
+    setActiveRoundIdx((prev) => (prev - 1 + selectedRounds.length) % selectedRounds.length);
+  }
+  function goRight() {
+    setActiveRoundIdx((prev) => (prev + 1) % selectedRounds.length);
+  }
+
   return (
     <div className="quiz-creation-screen">
       <button className="back-btn" onClick={onBack}>
         <span className="back-arrow" aria-hidden="true">&#8592;</span> Back
       </button>
       <div className="quiz-creation-center-area">
-        <div className="settings-tabs-row">
-          <button
-            className={`settings-tab${tab === 'game' ? ' active' : ''}`}
-            onClick={() => setTab('game')}
-          >
-            Game Settings
-          </button>
+        <div className="settings-tabs-row compact">
           <button
             className={`settings-tab${tab === 'round' ? ' active' : ''}`}
             onClick={() => setTab('round')}
           >
             Round Settings
           </button>
+          <button
+            className={`settings-tab${tab === 'game' ? ' active' : ''}`}
+            onClick={() => setTab('game')}
+          >
+            Game Settings
+          </button>
         </div>
         <div className="settings-tab-content">
-          {tab === 'game' && (
-            <div>
-              <h2 className="settings-title">Game Settings</h2>
-              {/* TODO: Game settings form */}
-              <div style={{margin: '2rem 0', color: '#60efff'}}>Game settings form goes here.</div>
-            </div>
+          {tab === 'round' && selectedRounds.length > 0 && (
+            <>
+              <div className="round-carousel-bar">
+                <button className="carousel-arrow" onClick={goLeft} aria-label="Previous Round">&#8592;</button>
+                <div className="round-carousel-steps">
+                  {selectedRounds.map((round, idx) => (
+                    <button
+                      key={round.id}
+                      className={`round-carousel-step${activeRoundIdx === idx ? ' active' : ''}`}
+                      onClick={() => setActiveRoundIdx(idx)}
+                    >
+                      {`Round ${idx + 1}: ${round.name}`}
+                    </button>
+                  ))}
+                </div>
+                <button className="carousel-arrow" onClick={goRight} aria-label="Next Round">&#8594;</button>
+              </div>
+              <div className="round-carousel-card">
+                <div className="round-carousel-card-header">
+                  <span className="round-carousel-card-title">{`Round ${activeRoundIdx + 1}: ${selectedRounds[activeRoundIdx].name}`}</span>
+                </div>
+                <div className="round-carousel-card-body">
+                  <div style={{color: '#60efff', margin: '1.2rem 0'}}>Settings for {selectedRounds[activeRoundIdx].name} go here.</div>
+                </div>
+              </div>
+            </>
           )}
-          {tab === 'round' && (
-            <div>
-              <h2 className="settings-title">Round Settings</h2>
-              {/* TODO: Round settings form */}
-              <div style={{margin: '2rem 0', color: '#60efff'}}>Round settings form goes here.</div>
+          {tab === 'game' && (
+            <div className="game-settings-card">
+              <div className="game-settings-card-header">
+                <span className="game-settings-card-title">Game Settings</span>
+              </div>
+              <div className="game-settings-card-body">
+                <div style={{color: '#60efff', margin: '1.2rem 0'}}>Game settings form goes here.</div>
+              </div>
             </div>
           )}
         </div>
         <div className="settings-actions-row">
           <button className="quiz-action-btn" onClick={handleSave}>Save Changes</button>
-          <button className="quiz-action-btn" style={{marginLeft: '1.2rem', background: '#222', color: '#60efff'}} onClick={handleReset}>Reset to Defaults</button>
+          <button className="quiz-action-btn" style={{marginLeft: '1.2rem', background: '#222', color: '#60efff'}} onClick={handleReset}>Restore to Default</button>
         </div>
       </div>
     </div>
@@ -544,7 +576,7 @@ function QuizCreationScreen({ onBack }) {
 
   // --- Settings Page ---
   if (screen === 'settings') {
-    return <SettingsPage onBack={handleBackToRounds} />;
+    return <SettingsPage onBack={handleBackToRounds} selectedRounds={selectedRounds} />;
   }
 
   // --- Round Selection Screen ---

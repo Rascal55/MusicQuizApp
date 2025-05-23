@@ -1607,14 +1607,24 @@ html, body, #root {
 }
 
 .settings-tab-content {
-  width: 100%;
-  max-width: 700px;
+  width: 900px;
+  max-width: 900px;
+  min-width: 900px;
   margin: 0 auto 2.5rem auto;
   background: rgba(255,255,255,0.04);
   border-radius: 18px;
   box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-  padding: 2.2rem 2.5rem 1.5rem 2.5rem;
+  padding: 1.2rem 1.5rem 1.2rem 1.5rem;
   min-height: 220px;
+  position: relative;
+  top: 0;
+  border-top: none;
+}
+
+/* If no round tabs, make the card fully rounded */
+.settings-tab-content:not(:has(.round-tabs-bar)) {
+  border-radius: 18px;
+  top: 0;
 }
 
 .settings-actions-row {
@@ -1623,4 +1633,321 @@ html, body, #root {
   align-items: center;
   gap: 1.5rem;
   margin-top: 2.5rem;
+}
+
+.round-selector-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1.2rem;
+  margin: 2rem 0 2.5rem 0;
+  flex-wrap: wrap;
+}
+
+.round-pill {
+  font-size: 1.1rem;
+  font-weight: 700;
+  padding: 0.7rem 2.2rem;
+  border-radius: 999px;
+  border: 2px solid #60efff;
+  background: transparent;
+  color: #60efff;
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s, box-shadow 0.18s, border 0.18s;
+  box-shadow: 0 2px 8px rgba(0,255,135,0.06);
+  outline: none;
+  margin: 0;
+  letter-spacing: 0.01em;
+}
+.round-pill.active {
+  background: linear-gradient(45deg, #00ff87, #60efff);
+  color: #181e2a;
+  border: 2px solid #00ff87;
+  box-shadow: 0 4px 16px rgba(0,255,135,0.13);
+  z-index: 2;
+}
+.round-pill:not(.active):hover {
+  background: rgba(0,255,135,0.08);
+  color: #fff;
+  border: 2px solid #60efff;
+  box-shadow: 0 2px 8px rgba(0,255,135,0.10);
+}
+
+/* Google-style round tabs for round settings */
+.round-tabs-bar {
+  display: flex;
+  justify-content: flex-start;
+  align-items: flex-end;
+  width: 900px;
+  max-width: 900px;
+  min-width: 900px;
+  gap: 0.5rem;
+  background: transparent;
+  margin-bottom: 0.7rem;
+  margin-top: 0;
+  border-bottom: 2.5px solid rgba(96,239,255,0.13);
+  padding: 0;
+  position: static;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  overflow: hidden;
+}
+.round-tabs-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.round-tab {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: none;
+  padding: 0.3rem 0.2rem 0.2rem 0.2rem;
+  font-size: 0.98rem;
+  font-weight: 500;
+  color: #60efff;
+  background: none;
+  border: none;
+  border-radius: 0;
+  border-bottom: 3px solid transparent;
+  margin: 0;
+  cursor: pointer;
+  transition: color 0.18s, border 0.18s, background 0.18s, font-weight 0.18s;
+  outline: none;
+  box-shadow: none;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  text-align: center;
+  opacity: 0.7;
+  overflow: hidden;
+}
+.round-tab.active {
+  color: #00ff87;
+  border-bottom: 3px solid #00ff87;
+  font-weight: 700;
+  opacity: 1;
+  background: none;
+}
+.round-tab:not(.active):hover {
+  color: #fff;
+  background: rgba(0,255,135,0.06);
+  opacity: 1;
+}
+
+/* Add padding below the tab bar before content */
+.round-tabs-bar + * {
+  margin-top: 1.2rem;
+}
+
+@media (max-width: 950px) {
+  .settings-tab-content, .round-tabs-bar {
+    width: 98vw;
+    max-width: 98vw;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 700px) {
+  .round-tabs-bar {
+    gap: 0.2rem;
+    margin-bottom: 0.5rem;
+  }
+  .round-tab {
+    font-size: 0.92rem;
+    padding: 0.2rem 0.1rem 0.1rem 0.1rem;
+  }
+}
+
+.settings-tabs-row.compact {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1.2rem;
+  margin: 1.2rem auto 0.7rem auto;
+  padding: 0;
+  width: 100%;
+  max-width: 900px;
+}
+.settings-tab {
+  font-size: 1.08rem;
+  font-weight: 600;
+  padding: 0.7rem 2.2rem;
+  border-radius: 999px;
+  border: 2px solid #60efff;
+  background: transparent;
+  color: #60efff;
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s, box-shadow 0.18s, border 0.18s;
+  box-shadow: 0 2px 8px rgba(0,255,135,0.06);
+  outline: none;
+  margin: 0;
+  letter-spacing: 0.01em;
+}
+.settings-tab.active {
+  background: linear-gradient(45deg, #00ff87, #60efff);
+  color: #181e2a;
+  border: 2px solid #00ff87;
+  box-shadow: 0 6px 24px rgba(0,255,135,0.13);
+  z-index: 2;
+}
+.settings-tab:not(.active):hover {
+  background: rgba(0,255,135,0.08);
+  color: #fff;
+  border: 2px solid #60efff;
+  box-shadow: 0 4px 16px rgba(0,255,135,0.10);
+}
+
+.round-settings-cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2.2rem;
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+}
+.round-settings-card {
+  background: rgba(255,255,255,0.04);
+  border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  padding: 1.5rem 2rem 1.2rem 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+}
+.round-settings-card-header {
+  width: 100%;
+  margin-bottom: 0.7rem;
+  display: flex;
+  align-items: center;
+}
+.round-settings-card-title {
+  font-size: 1.18rem;
+  font-weight: 700;
+  color: #00ff87;
+  letter-spacing: 0.01em;
+}
+.round-settings-card-body {
+  width: 100%;
+}
+
+.game-settings-card {
+  background: rgba(255,255,255,0.04);
+  border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  padding: 1.5rem 2rem 1.2rem 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+  max-width: 900px;
+  margin: 0 auto;
+}
+.game-settings-card-header {
+  width: 100%;
+  margin-bottom: 0.7rem;
+  display: flex;
+  align-items: center;
+}
+.game-settings-card-title {
+  font-size: 1.18rem;
+  font-weight: 700;
+  color: #60efff;
+  letter-spacing: 0.01em;
+}
+.game-settings-card-body {
+  width: 100%;
+}
+
+.round-carousel-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.2rem;
+  margin: 0.5rem auto 1.5rem auto;
+  width: 100%;
+  max-width: 900px;
+}
+.round-carousel-steps {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  flex: 1 1 0;
+  justify-content: center;
+}
+.round-carousel-step {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #60efff;
+  background: none;
+  border: none;
+  border-radius: 999px;
+  padding: 0.5rem 1.3rem;
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s, font-weight 0.18s;
+  outline: none;
+  opacity: 0.7;
+  box-shadow: none;
+  letter-spacing: 0.01em;
+}
+.round-carousel-step.active {
+  background: linear-gradient(45deg, #00ff87, #60efff);
+  color: #181e2a;
+  font-weight: 700;
+  opacity: 1;
+  box-shadow: 0 4px 16px rgba(0,255,135,0.10);
+}
+.round-carousel-step:not(.active):hover {
+  background: rgba(0,255,135,0.08);
+  color: #fff;
+  opacity: 1;
+}
+.carousel-arrow {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #60efff;
+  background: none;
+  border: none;
+  border-radius: 999px;
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s, box-shadow 0.18s;
+  outline: none;
+  margin: 0 0.2rem;
+}
+.carousel-arrow:hover {
+  background: linear-gradient(45deg, #00ff87, #60efff);
+  color: #181e2a;
+  box-shadow: 0 2px 8px rgba(0,255,135,0.10);
+}
+
+.round-carousel-card {
+  background: rgba(255,255,255,0.04);
+  border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  padding: 1.5rem 2rem 1.2rem 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+  max-width: 900px;
+  margin: 0 auto;
+}
+.round-carousel-card-header {
+  width: 100%;
+  margin-bottom: 0.7rem;
+  display: flex;
+  align-items: center;
+}
+.round-carousel-card-title {
+  font-size: 1.18rem;
+  font-weight: 700;
+  color: #00ff87;
+  letter-spacing: 0.01em;
+}
+.round-carousel-card-body {
+  width: 100%;
 }
