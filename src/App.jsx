@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import './App.css'
 import { getDefaultSettings, validateSettings } from './roundSettings';
+import IntroDropRound from './components/rounds/IntroDropRound';
 
 // Staff line Y positions (relative to SVG viewBox)
 const STAFF_CENTER = 60;
@@ -480,29 +481,31 @@ function SettingsPage({ onBack, selectedRounds = [] }) {
   }
 
   return (
-    <div className="quiz-creation-screen">
-      <button className="back-btn" onClick={onBack}>
+    <div className="quiz-creation-screen" style={{ minHeight: '100vh', overflowY: 'auto', paddingTop: 0 }}>
+      {/* Move settings tabs to the very top with minimal margin */}
+      <div className="settings-tabs-row compact" style={{ marginTop: '0.2rem', marginBottom: '0.7rem', zIndex: 2, position: 'relative' }}>
+        <button
+          className={`settings-tab${tab === 'round' ? ' active' : ''}`}
+          onClick={() => setTab('round')}
+        >
+          Round Settings
+        </button>
+        <button
+          className={`settings-tab${tab === 'game' ? ' active' : ''}`}
+          onClick={() => setTab('game')}
+        >
+          Game Settings
+        </button>
+      </div>
+      {/* Back button just below the pills, but with less margin */}
+      <button className="back-btn" onClick={onBack} style={{ marginBottom: '0.7rem', top: 12, left: 18 }}>
         <span className="back-arrow" aria-hidden="true">&#8592;</span> Back
       </button>
-      <div className="quiz-creation-center-area">
-        <div className="settings-tabs-row compact">
-          <button
-            className={`settings-tab${tab === 'round' ? ' active' : ''}`}
-            onClick={() => setTab('round')}
-          >
-            Round Settings
-          </button>
-          <button
-            className={`settings-tab${tab === 'game' ? ' active' : ''}`}
-            onClick={() => setTab('game')}
-          >
-            Game Settings
-          </button>
-        </div>
-        <div className="settings-tab-content">
+      <div className="quiz-creation-center-area" style={{ flex: 1, minHeight: 0, overflow: 'visible', marginTop: 0 }}>
+        <div className="settings-tab-content" style={{ position: 'relative', overflow: 'visible', marginTop: 0 }}>
           {tab === 'round' && selectedRounds.length > 0 && (
             <>
-              <div className="round-carousel-bar">
+              <div className="round-carousel-bar" style={{ marginTop: 0, marginBottom: '1rem' }}>
                 <button className="carousel-arrow" onClick={goLeft} aria-label="Previous Round">&#8592;</button>
                 <div className="round-carousel-steps">
                   {selectedRounds.map((round, idx) => (
@@ -517,12 +520,16 @@ function SettingsPage({ onBack, selectedRounds = [] }) {
                 </div>
                 <button className="carousel-arrow" onClick={goRight} aria-label="Next Round">&#8594;</button>
               </div>
-              <div className="round-carousel-card">
+              <div className="round-carousel-card" style={{ position: 'relative', maxHeight: 'calc(100vh - 360px)', display: 'flex', flexDirection: 'column', marginTop: 0 }}>
                 <div className="round-carousel-card-header">
                   <span className="round-carousel-card-title">{`Round ${activeRoundIdx + 1}: ${selectedRounds[activeRoundIdx].name}`}</span>
                 </div>
-                <div className="round-carousel-card-body">
-                  <div style={{color: '#60efff', margin: '1.2rem 0'}}>Settings for {selectedRounds[activeRoundIdx].name} go here.</div>
+                <div className="round-carousel-card-body no-scrollbar" style={{ flex: '1 1 auto', minHeight: 0, overflowY: 'auto', borderRadius: '0 0 18px 18px', position: 'relative' }}>
+                  {selectedRounds[activeRoundIdx].name === 'Intro Drop' ? (
+                    <IntroDropRound hideSaveButton />
+                  ) : (
+                    <div style={{color: '#60efff', margin: '1.2rem 0'}}>Settings for {selectedRounds[activeRoundIdx].name} go here.</div>
+                  )}
                 </div>
               </div>
             </>
@@ -538,7 +545,8 @@ function SettingsPage({ onBack, selectedRounds = [] }) {
             </div>
           )}
         </div>
-        <div className="settings-actions-row">
+        {/* Save/Restore buttons always visible below the tab content */}
+        <div className="settings-actions-row" style={{ marginTop: '0.3rem', marginBottom: '2rem' }}>
           <button className="quiz-action-btn" onClick={handleSave}>Save Changes</button>
           <button className="quiz-action-btn" style={{marginLeft: '1.2rem', background: '#222', color: '#60efff'}} onClick={handleReset}>Restore to Default</button>
         </div>
