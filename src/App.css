@@ -1371,3 +1371,200 @@ html, body, #root {
   box-shadow: 0 0 0 3px #ff3b3b99;
   border: none;
 }
+
+.round-settings-panel {
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.round-settings-panel::-webkit-scrollbar {
+  display: none;
+}
+
+.round-settings-panel {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+  padding: 0 0.5rem;
+}
+
+.settings-title {
+  font-size: 1.8rem;
+  font-weight: 900;
+  background: linear-gradient(45deg, #00ff87, #60efff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-fill-color: transparent;
+  text-align: center;
+  margin: 0;
+  padding: 0 2.5rem;
+}
+
+.settings-form {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 0.5rem;
+}
+
+.settings-form::-webkit-scrollbar {
+  display: none;
+}
+
+.settings-form {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.8rem 1rem;
+  background: rgba(255,255,255,0.04);
+  border-radius: 12px;
+  transition: all 0.2s ease;
+  margin-bottom: 0.6rem;
+}
+
+.setting-row:hover {
+  background: rgba(255,255,255,0.08);
+  transform: translateX(4px);
+}
+
+.setting-label {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: 0.01em;
+}
+
+.setting-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.setting-input {
+  background: rgba(255,255,255,0.08);
+  border: 2px solid transparent;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 1.1rem;
+  padding: 0.5rem 0.8rem;
+  width: 70px;
+  text-align: center;
+  transition: all 0.2s ease;
+}
+
+.setting-input:focus {
+  outline: none;
+  border-color: #60efff;
+  background: rgba(255,255,255,0.12);
+  box-shadow: 0 0 0 2px rgba(96,239,255,0.2);
+}
+
+.setting-unit {
+  color: #60efff;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.setting-toggle {
+  position: relative;
+}
+
+.setting-checkbox {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 44px;
+  height: 24px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 999px;
+  position: relative;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.setting-checkbox:checked {
+  background: linear-gradient(45deg, #00ff87, #60efff);
+}
+
+.setting-checkbox::before {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  top: 2px;
+  left: 2px;
+  background: #fff;
+  transition: transform 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.setting-checkbox:checked::before {
+  transform: translateX(20px);
+}
+
+.setting-group {
+  background: rgba(255,255,255,0.02);
+  border-radius: 12px;
+  border: 1px solid rgba(96,239,255,0.1);
+  padding: 1rem;
+  margin-bottom: 0.8rem;
+}
+
+.setting-group-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #60efff;
+  margin: 0 0 0.8rem 0;
+  padding: 0 0.5rem;
+}
+
+.setting-row.nested {
+  margin-left: 0;
+  background: rgba(255,255,255,0.02);
+}
+
+.settings-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 1.5rem;
+  padding: 0 0.5rem;
+}
+
+.settings-actions .quiz-action-btn {
+  min-width: 180px;
+  background: linear-gradient(45deg, #00ff87, #60efff);
+  color: #181e2a;
+  font-weight: 700;
+  padding: 0.8rem 1.8rem;
+  border-radius: 999px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.settings-actions .quiz-action-btn:hover:not(:disabled) {
+  transform: scale(1.05);
+  box-shadow: 0 4px 20px rgba(0,255,135,0.2);
+}
+
+.settings-actions .quiz-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}

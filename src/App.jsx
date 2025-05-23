@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import './App.css'
+import { getDefaultSettings, validateSettings } from './roundSettings';
 
 // Staff line Y positions (relative to SVG viewBox)
 const STAFF_CENTER = 60;
@@ -268,32 +269,120 @@ function SelectRoundsPanel({ roundCount, selectedRounds, setSelectedRounds }) {
 function RoundSettingsPanel({ selectedRounds, currentIdx, setCurrentIdx, errorAnim }) {
   if (!selectedRounds.length) return null;
   const round = selectedRounds[currentIdx];
+  const [settings, setSettings] = useState(() => getDefaultSettings(round.name));
+  const [isDirty, setIsDirty] = useState(false);
+
+  const handleSettingChange = (key, value) => {
+    setSettings(prev => ({ ...prev, [key]: value }));
+    setIsDirty(true);
+  };
+
+  const handleApplySettings = () => {
+    const validatedSettings = validateSettings(round.name, settings);
+    setSettings(validatedSettings);
+    setIsDirty(false);
+    // TODO: Save settings to the round object
+  };
+
+  const formatSettingName = (key) => {
+    return key
+      .replace(/([A-Z])/g, ' $1') // Add space before capital letters
+      .replace(/^./, str => str.toUpperCase()) // Capitalize first letter
+      .trim();
+  };
+
+  const renderSettingInput = (key, value) => {
+    if (typeof value === 'boolean') {
+      return (
+        <div key={key} className="setting-row">
+          <label className="setting-label">{formatSettingName(key)}</label>
+          <div className="setting-toggle">
+            <input
+              type="checkbox"
+              checked={value}
+              onChange={(e) => handleSettingChange(key, e.target.checked)}
+              className="setting-checkbox"
+              id={`setting-${key}`}
+            />
+            <label htmlFor={`setting-${key}`} className="setting-checkbox-label"></label>
+          </div>
+        </div>
+      );
+    } else if (typeof value === 'number') {
+      return (
+        <div key={key} className="setting-row">
+          <label className="setting-label">{formatSettingName(key)}</label>
+          <div className="setting-input-wrapper">
+            <input
+              type="number"
+              value={value}
+              onChange={(e) => handleSettingChange(key, Number(e.target.value))}
+              className="setting-input"
+              min="0"
+            />
+            <span className="setting-unit">sec</span>
+          </div>
+        </div>
+      );
+    } else if (typeof value === 'object') {
+      return (
+        <div key={key} className="setting-group">
+          <h4 className="setting-group-title">{formatSettingName(key)}</h4>
+          {Object.entries(value).map(([subKey, subValue]) => (
+            <div key={`${key}-${subKey}`} className="setting-row nested">
+              <label className="setting-label">{formatSettingName(subKey)}</label>
+              <div className="setting-input-wrapper">
+                <input
+                  type="number"
+                  value={subValue}
+                  onChange={(e) => handleSettingChange(key, { ...value, [subKey]: Number(e.target.value) })}
+                  className="setting-input"
+                  min="0"
+                />
+                <span className="setting-unit">pts</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    }
+    return null;
+  };
+
   return (
-    <div className={`round-settings-panel${errorAnim ? ' error-anim' : ''}`} style={{ width: '100%' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', marginBottom: '2rem' }}>
+    <div className={`round-settings-panel${errorAnim ? ' error-anim' : ''}`}>
+      <div className="settings-header">
         <button
           className="round-arrow-btn minimal"
-          style={{ position: 'absolute', left: 0 }}
           onClick={() => setCurrentIdx((currentIdx - 1 + selectedRounds.length) % selectedRounds.length)}
           aria-label="Previous Round"
         >
           <span className="arrow-shape">&#8592;</span>
         </button>
-        <div className="round-settings-title" style={{ fontSize: '2rem', fontWeight: 900, background: 'linear-gradient(45deg, #00ff87, #60efff)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', textFillColor: 'transparent', textAlign: 'center', padding: '0 3.5rem' }}>
+        <h2 className="settings-title">
           {`Round ${currentIdx + 1}: ${round.name}`}
-        </div>
+        </h2>
         <button
           className="round-arrow-btn minimal"
-          style={{ position: 'absolute', right: 0 }}
           onClick={() => setCurrentIdx((currentIdx + 1) % selectedRounds.length)}
           aria-label="Next Round"
         >
           <span className="arrow-shape">&#8594;</span>
         </button>
       </div>
-      {/* Settings UI goes here */}
-      <div style={{ color: '#aaa', textAlign: 'center' }}>
-        <em>Settings for this round will appear here.</em>
+      
+      <div className="settings-form">
+        {Object.entries(settings).map(([key, value]) => renderSettingInput(key, value))}
+      </div>
+
+      <div className="settings-actions">
+        <button 
+          className={`quiz-action-btn${isDirty ? ' active' : ''}`}
+          onClick={handleApplySettings}
+          disabled={!isDirty}
+        >
+          Save Settings
+        </button>
       </div>
     </div>
   );
@@ -336,18 +425,10 @@ function QuizActionButtons({ openPanel, setOpenPanel, selectedRounds, setErrorAn
     setOpenPanel(openPanel === panel ? null : panel);
   }
   return (
-    <div className="quiz-action-buttons-row">
+    <div className="quiz-action-buttons-row" style={{ justifyContent: 'center' }}>
       <button className={`quiz-action-btn${openPanel === 'select' ? ' active' : ''}`} onClick={() => handleClick('select')}>
         <span className="quiz-action-icon" role="img" aria-label="Select Rounds">🎯</span>
         Select Rounds
-      </button>
-      <button className={`quiz-action-btn${openPanel === 'edit' ? ' active' : ''}${errorBtn ? ' error-btn' : ''}`} onClick={() => handleClick('edit')}>
-        <span className="quiz-action-icon" role="img" aria-label="Round Settings">⚙️</span>
-        Round Settings
-      </button>
-      <button className={`quiz-action-btn${openPanel === 'settings' ? ' active' : ''}`} onClick={() => handleClick('settings')}>
-        <span className="quiz-action-icon" role="img" aria-label="Game Settings">🛠️</span>
-        Game Settings
       </button>
     </div>
   );
@@ -377,7 +458,9 @@ function QuizCreationScreen({ onBack }) {
   const [roundCount, setRoundCount] = useState(3);
   const [openPanel, setOpenPanel] = useState(null);
   const [selectedRounds, setSelectedRounds] = useState([]);
+  const [savedRounds, setSavedRounds] = useState([]);
   const [errorAnim, setErrorAnim] = useState(false);
+  const [screen, setScreen] = useState('rounds'); // 'rounds' or 'game-settings'
 
   function handleRoundCountChange(newCount) {
     if (selectedRounds.length > newCount) {
@@ -388,6 +471,33 @@ function QuizCreationScreen({ onBack }) {
     setRoundCount(newCount);
   }
 
+  function handleNext() {
+    setSavedRounds(selectedRounds);
+    setScreen('game-settings');
+  }
+
+  function handleBackToRounds() {
+    setSelectedRounds(savedRounds);
+    setScreen('rounds');
+  }
+
+  // --- Game Settings Screen ---
+  if (screen === 'game-settings') {
+    return (
+      <div className="quiz-creation-screen">
+        <button className="back-btn" onClick={handleBackToRounds}>
+          <span className="back-arrow" aria-hidden="true">&#8592;</span> Back
+        </button>
+        <div className="quiz-creation-center-area">
+          <div className="panel-content" style={{marginTop: '3rem', fontSize: '2rem', color: '#60efff', fontWeight: 700}}>
+            Game Settings (Coming Soon)
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // --- Round Selection Screen ---
   return (
     <div className="quiz-creation-screen">
       <button className="back-btn" onClick={onBack}>
@@ -400,6 +510,16 @@ function QuizCreationScreen({ onBack }) {
           <SelectedRoundsShowcase selectedRounds={selectedRounds} setSelectedRounds={setSelectedRounds} />
         )}
         <QuizBottomPanel openPanel={openPanel} onClose={() => setOpenPanel(null)} roundCount={roundCount} selectedRounds={selectedRounds} setSelectedRounds={setSelectedRounds} />
+        <div style={{ width: '100%', display: 'flex', justifyContent: 'center', marginTop: '2.5rem' }}>
+          <button
+            className="quiz-action-btn"
+            style={{ minWidth: 220, fontSize: '1.2rem', opacity: selectedRounds.length === roundCount ? 1 : 0.5, cursor: selectedRounds.length === roundCount ? 'pointer' : 'not-allowed' }}
+            onClick={handleNext}
+            disabled={selectedRounds.length !== roundCount}
+          >
+            Next: Game Settings
+          </button>
+        </div>
       </div>
     </div>
   );
