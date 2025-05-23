@@ -1568,3 +1568,59 @@ html, body, #root {
   cursor: not-allowed;
   transform: none;
 }
+
+.settings-tabs-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 2.2rem;
+  margin: 2.5rem 0 2.5rem 0;
+}
+
+.settings-tab {
+  font-size: 1.3rem;
+  font-weight: 700;
+  padding: 1.1rem 3.5rem;
+  border-radius: 999px;
+  border: 2.5px solid #60efff;
+  background: transparent;
+  color: #60efff;
+  cursor: pointer;
+  transition: background 0.22s, color 0.22s, box-shadow 0.22s, border 0.22s;
+  box-shadow: 0 2px 12px rgba(0,255,135,0.06);
+  outline: none;
+  margin: 0;
+  letter-spacing: 0.01em;
+}
+.settings-tab.active {
+  background: linear-gradient(45deg, #00ff87, #60efff);
+  color: #181e2a;
+  border: 2.5px solid #00ff87;
+  box-shadow: 0 6px 24px rgba(0,255,135,0.13);
+  z-index: 2;
+}
+.settings-tab:not(.active):hover {
+  background: rgba(0,255,135,0.08);
+  color: #fff;
+  border: 2.5px solid #60efff;
+  box-shadow: 0 4px 16px rgba(0,255,135,0.10);
+}
+
+.settings-tab-content {
+  width: 100%;
+  max-width: 700px;
+  margin: 0 auto 2.5rem auto;
+  background: rgba(255,255,255,0.04);
+  border-radius: 18px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  padding: 2.2rem 2.5rem 1.5rem 2.5rem;
+  min-height: 220px;
+}
+
+.settings-actions-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1.5rem;
+  margin-top: 2.5rem;
+}

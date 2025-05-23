@@ -454,13 +454,74 @@ function SelectedRoundsShowcase({ selectedRounds, setSelectedRounds }) {
   );
 }
 
+function SettingsPage({ onBack }) {
+  const [tab, setTab] = useState('game'); // 'game' or 'round'
+
+  // Placeholder state for settings
+  const [gameSettings, setGameSettings] = useState({});
+  const [roundSettings, setRoundSettings] = useState({});
+
+  function handleSave() {
+    // TODO: Save logic
+    alert('Settings saved!');
+  }
+  function handleReset() {
+    // TODO: Reset logic
+    alert('Settings reset to defaults!');
+  }
+
+  return (
+    <div className="quiz-creation-screen">
+      <button className="back-btn" onClick={onBack}>
+        <span className="back-arrow" aria-hidden="true">&#8592;</span> Back
+      </button>
+      <div className="quiz-creation-center-area">
+        <div className="settings-tabs-row">
+          <button
+            className={`settings-tab${tab === 'game' ? ' active' : ''}`}
+            onClick={() => setTab('game')}
+          >
+            Game Settings
+          </button>
+          <button
+            className={`settings-tab${tab === 'round' ? ' active' : ''}`}
+            onClick={() => setTab('round')}
+          >
+            Round Settings
+          </button>
+        </div>
+        <div className="settings-tab-content">
+          {tab === 'game' && (
+            <div>
+              <h2 className="settings-title">Game Settings</h2>
+              {/* TODO: Game settings form */}
+              <div style={{margin: '2rem 0', color: '#60efff'}}>Game settings form goes here.</div>
+            </div>
+          )}
+          {tab === 'round' && (
+            <div>
+              <h2 className="settings-title">Round Settings</h2>
+              {/* TODO: Round settings form */}
+              <div style={{margin: '2rem 0', color: '#60efff'}}>Round settings form goes here.</div>
+            </div>
+          )}
+        </div>
+        <div className="settings-actions-row">
+          <button className="quiz-action-btn" onClick={handleSave}>Save Changes</button>
+          <button className="quiz-action-btn" style={{marginLeft: '1.2rem', background: '#222', color: '#60efff'}} onClick={handleReset}>Reset to Defaults</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function QuizCreationScreen({ onBack }) {
   const [roundCount, setRoundCount] = useState(3);
   const [openPanel, setOpenPanel] = useState(null);
   const [selectedRounds, setSelectedRounds] = useState([]);
   const [savedRounds, setSavedRounds] = useState([]);
   const [errorAnim, setErrorAnim] = useState(false);
-  const [screen, setScreen] = useState('rounds'); // 'rounds' or 'game-settings'
+  const [screen, setScreen] = useState('rounds'); // 'rounds' or 'settings'
 
   function handleRoundCountChange(newCount) {
     if (selectedRounds.length > newCount) {
@@ -473,7 +534,7 @@ function QuizCreationScreen({ onBack }) {
 
   function handleNext() {
     setSavedRounds(selectedRounds);
-    setScreen('game-settings');
+    setScreen('settings');
   }
 
   function handleBackToRounds() {
@@ -481,20 +542,9 @@ function QuizCreationScreen({ onBack }) {
     setScreen('rounds');
   }
 
-  // --- Game Settings Screen ---
-  if (screen === 'game-settings') {
-    return (
-      <div className="quiz-creation-screen">
-        <button className="back-btn" onClick={handleBackToRounds}>
-          <span className="back-arrow" aria-hidden="true">&#8592;</span> Back
-        </button>
-        <div className="quiz-creation-center-area">
-          <div className="panel-content" style={{marginTop: '3rem', fontSize: '2rem', color: '#60efff', fontWeight: 700}}>
-            Game Settings (Coming Soon)
-          </div>
-        </div>
-      </div>
-    );
+  // --- Settings Page ---
+  if (screen === 'settings') {
+    return <SettingsPage onBack={handleBackToRounds} />;
   }
 
   // --- Round Selection Screen ---
