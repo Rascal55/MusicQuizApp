@@ -1122,3 +1122,62 @@ html, body, #root {
   backdrop-filter: blur(20px) saturate(1.2);
   -webkit-backdrop-filter: blur(20px) saturate(1.2);
 }
+
+/* Save and Restore Buttons */
+.settings-action-buttons {
+  position: fixed;
+  bottom: 2rem;
+  width: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 1.5rem;
+  z-index: 9999;
+  justify-content: center; /* Add this line */
+  align-items: center; /* Add this line */
+}
+
+.settings-save-btn {
+  background: linear-gradient(45deg, #60efff 0%, #00ff87 100%);
+  color: #181e2a;
+  border: none;
+  border-radius: 12px;
+  padding: 1rem 2rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 16px rgba(0,255,135,0.2);
+  letter-spacing: 0.02em;
+  min-width: 120px;
+}
+
+.settings-save-btn:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 8px 24px rgba(0,255,135,0.3);
+  background: linear-gradient(45deg, #00ff87 0%, #60efff 100%);
+}
+
+.settings-restore-btn {
+  background: rgba(40, 44, 52, 0.95);
+  color: #a0a0a0;
+  border: 1.5px solid rgba(160, 160, 160, 0.3);
+  border-radius: 12px;
+  padding: 1rem 2rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  letter-spacing: 0.02em;
+  min-width: 120px;
+}
+
+.settings-restore-btn:hover {
+  transform: translateY(-2px) scale(1.02);
+  background: rgba(50, 54, 62, 0.98);
+  color: #d0d0d0;
+  border-color: rgba(160, 160, 160, 0.5);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+}

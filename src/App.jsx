@@ -617,6 +617,16 @@ function SettingsPage({ onBack, selectedRounds }) {
         </div>
       </div>
       
+      {/* Save and Restore Buttons */}
+      <div className="settings-action-buttons">
+        <button className="settings-save-btn">
+          Save Settings
+        </button>
+        <button className="settings-restore-btn">
+          Restore Defaults
+        </button>
+      </div>
+
       {/* Global tooltip that renders outside of all containers */}
       <GlobalTooltip tooltip={globalTooltip.tooltip} position={globalTooltip.position} />
     </>
