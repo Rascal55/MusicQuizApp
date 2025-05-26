@@ -717,17 +717,19 @@ html, body, #root {
 
 .round-settings,
 .game-settings {
+  padding-top: 1.1rem;
+  padding-right: 2.5rem;
+  padding-bottom: 2.5rem;
+  padding-left: 2.5rem;
   background: rgba(24, 30, 42, 0.95);
   border-radius: 24px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.2),
-              0 0 0 1px rgba(96,239,255,0.1);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.2), 0 0 0 1px rgba(96,239,255,0.1);
   border: 1px solid rgba(96,239,255,0.15);
-  padding: 2.5rem;
   backdrop-filter: blur(20px) saturate(1.2);
   -webkit-backdrop-filter: blur(20px) saturate(1.2);
   position: absolute;
   left: 50%;
-  transform: translate(-50%, 20px);
+  transform: translate(-50%, 0);
   width: 100%;
   max-width: 725px;
   min-width: 0;
@@ -736,7 +738,6 @@ html, body, #root {
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   pointer-events: none;
   box-sizing: border-box;
-  overflow-y: auto;
 }
 
 .round-settings.active,
@@ -872,6 +873,12 @@ html, body, #root {
   box-shadow: 0 8px 32px rgba(0,255,135,0.10), 0 0 0 2px #60efff33;
   border: 1.5px solid #60efff22;
   position: relative;
+  max-height: 270px;
+  overflow-y: auto;
+  scrollbar-width: none; /* Firefox */
+}
+.settings-modern-group::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Edge */
 }
 
 .settings-modern-title {
@@ -894,8 +901,8 @@ html, body, #root {
   font-weight: 600;
   background: rgba(96,239,255,0.10);
   border-radius: 14px;
-  padding: 1.2rem 1.5rem;
-  margin-bottom: 0.5rem;
+  padding: 1rem 1.3rem;
+  margin-bottom: 0.38rem;
   box-shadow: 0 2px 12px #60efff22;
   border: 2px solid #60efff33;
   transition: background 0.2s, box-shadow 0.2s, border 0.2s;
