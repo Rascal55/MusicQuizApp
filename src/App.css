@@ -950,6 +950,11 @@ html, body, #root {
   background: rgba(96,239,255,0.08);
 }
 
+.settings-modern-input.invalid {
+  border-color: #ff6b6b;
+  background: rgba(255, 107, 107, 0.1);
+}
+
 .settings-modern-checkbox {
   accent-color: #60efff;
   width: 1.3em;
@@ -1181,3 +1186,4 @@ html, body, #root {
   border-color: rgba(160, 160, 160, 0.5);
   box-shadow: 0 4px 16px rgba(0,0,0,0.3);
 }
+

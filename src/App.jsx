@@ -258,18 +258,38 @@ function GlobalTooltip({ tooltip, position }) {
         visibility: 'visible',
         opacity: 1,
         width: '240px',
-        background: '#181e2a',
-        color: '#fff',
+        background: 'rgba(24, 30, 42, 0.98)',
+        border: '1.5px solid #60efff44',
+        borderRadius: '12px',
+        boxShadow: '0 8px 32px rgba(0,255,135,0.15), 0 0 0 1px rgba(96,239,255,0.1)',
+        backdropFilter: 'blur(20px) saturate(1.2)',
+        WebkitBackdropFilter: 'blur(20px) saturate(1.2)',
+        color: '#e8f4f8',
         textAlign: 'left',
-        borderRadius: '8px',
         padding: '0.7em 1em',
         zIndex: 1000,
-        boxShadow: '0 4px 16px #60efff33',
-        fontSize: '0.98em',
-        fontWeight: 400,
+        fontSize: '0.95em',
+        fontWeight: 500,
+        lineHeight: 1.4,
+        letterSpacing: '0.01em',
         pointerEvents: 'none',
       }}
     >
+      <div style={{
+        content: '',
+        position: 'absolute',
+        top: '-6px',
+        left: '50%',
+        transform: 'translateX(-50%) rotate(45deg)',
+        width: '12px',
+        height: '12px',
+        background: 'rgba(24, 30, 42, 0.98)',
+        border: '1.5px solid #60efff44',
+        borderBottom: 'none',
+        borderRight: 'none',
+        backdropFilter: 'blur(20px) saturate(1.2)',
+        WebkitBackdropFilter: 'blur(20px) saturate(1.2)',
+      }} />
       {tooltip}
     </div>
   );
@@ -278,25 +298,65 @@ function GlobalTooltip({ tooltip, position }) {
 function SettingsPage({ onBack, selectedRounds }) {
   const [activeTab, setActiveTab] = useState('rounds'); // 'rounds' or 'game'
   const [currentRoundIdx, setCurrentRoundIdx] = useState(0);
-  // Set default values for the first round
+  
+  // Default settings
   const defaultSettings = {
     randomDuration: true,
     muteDuration: 10,
+    duration: 10,
+    selectionTime: 30,
+    earliestYear: 1980,
     points: 10,
     timeBetween: 15,
     numQuestions: 5,
   };
-  const [roundSettings, setRoundSettings] = useState({ 0: { ...defaultSettings } });
-  const firstRound = selectedRounds && selectedRounds.length > 0 ? selectedRounds[currentRoundIdx] : null;
 
-  // Local state for display values of number inputs
-  const [inputValues, setInputValues] = useState({ ...defaultSettings });
+  // Saved settings (persistent until page refresh/back)
+  const [savedRoundSettings, setSavedRoundSettings] = useState(() => {
+    const initial = {};
+    selectedRounds.forEach((_, idx) => {
+      initial[idx] = { ...defaultSettings };
+    });
+    return initial;
+  });
+  
+  // Current working settings (temporary until saved)
+  const [workingRoundSettings, setWorkingRoundSettings] = useState(() => {
+    const initial = {};
+    selectedRounds.forEach((_, idx) => {
+      initial[idx] = { ...defaultSettings };
+    });
+    return initial;
+  });
+
+  // Local display values for inputs
+  const [inputValues, setInputValues] = useState({
+    muteDuration: '',
+    duration: '',
+    selectionTime: '',
+    earliestYear: '',
+    points: '',
+    timeBetween: '',
+    numQuestions: '',
+  });
 
   // Global tooltip state
   const [globalTooltip, setGlobalTooltip] = useState({ tooltip: null, position: null });
   
   // Refs for tooltip positioning
   const iconRefs = useRef({});
+
+  // Track if current settings have been modified
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
+  // Check for unsaved changes
+  useEffect(() => {
+    const currentSaved = savedRoundSettings[currentRoundIdx] || defaultSettings;
+    const currentWorking = workingRoundSettings[currentRoundIdx] || defaultSettings;
+    
+    const hasChanges = JSON.stringify(currentSaved) !== JSON.stringify(currentWorking);
+    setHasUnsavedChanges(hasChanges);
+  }, [workingRoundSettings, savedRoundSettings, currentRoundIdx]);
 
   // Handle tooltip show
   const showTooltip = (key, text) => {
@@ -318,22 +378,61 @@ function SettingsPage({ onBack, selectedRounds }) {
     setGlobalTooltip({ tooltip: null, position: null });
   };
 
-  // Sync inputValues with roundSettings when round changes
+  // Sync inputValues with workingRoundSettings when round changes
   useEffect(() => {
-    const currentSettings = roundSettings[currentRoundIdx] || defaultSettings;
+    const currentSettings = workingRoundSettings[currentRoundIdx] || defaultSettings;
     setInputValues({
       muteDuration: currentSettings.muteDuration?.toString() ?? '',
+      duration: currentSettings.duration?.toString() ?? '',
+      selectionTime: currentSettings.selectionTime?.toString() ?? '',
+      earliestYear: currentSettings.earliestYear?.toString() ?? '',
       points: currentSettings.points?.toString() ?? '',
       timeBetween: currentSettings.timeBetween?.toString() ?? '',
       numQuestions: currentSettings.numQuestions?.toString() ?? '',
     });
-  }, [currentRoundIdx, roundSettings]);
+  }, [currentRoundIdx, workingRoundSettings]);
 
-  const handlePrev = () => setCurrentRoundIdx(idx => Math.max(0, idx - 1));
-  const handleNext = () => setCurrentRoundIdx(idx => Math.min(selectedRounds.length - 1, idx + 1));
+  // Handle navigation with unsaved changes check
+  const handleNavigation = (newRoundIdx = null, newTab = null) => {
+    if (hasUnsavedChanges) {
+      // Revert to saved settings
+      const savedSettings = savedRoundSettings[currentRoundIdx] || defaultSettings;
+      setWorkingRoundSettings(prev => ({
+        ...prev,
+        [currentRoundIdx]: { ...savedSettings }
+      }));
+    }
+    
+    if (newRoundIdx !== null) {
+      setCurrentRoundIdx(newRoundIdx);
+    }
+    if (newTab !== null) {
+      setActiveTab(newTab);
+    }
+  };
+
+  const handlePrev = () => {
+    const newIdx = Math.max(0, currentRoundIdx - 1);
+    if (newIdx !== currentRoundIdx) {
+      handleNavigation(newIdx);
+    }
+  };
+
+  const handleNext = () => {
+    const newIdx = Math.min(selectedRounds.length - 1, currentRoundIdx + 1);
+    if (newIdx !== currentRoundIdx) {
+      handleNavigation(newIdx);
+    }
+  };
+
+  const handleTabChange = (newTab) => {
+    if (newTab !== activeTab) {
+      handleNavigation(null, newTab);
+    }
+  };
 
   const handleSettingChange = (setting, value) => {
-    setRoundSettings(prev => ({
+    setWorkingRoundSettings(prev => ({
       ...prev,
       [currentRoundIdx]: {
         ...prev[currentRoundIdx],
@@ -352,14 +451,71 @@ function SettingsPage({ onBack, selectedRounds }) {
 
   // On blur, restore last valid value if input is empty or invalid
   const handleInputBlur = (field, fallbackValue) => {
-    if (inputValues[field] === '' || isNaN(Number(inputValues[field]))) {
-      setInputValues(prev => ({ ...prev, [field]: fallbackValue?.toString() ?? '' }));
+    const currentYear = new Date().getFullYear();
+    const value = parseInt(inputValues[field]);
+    
+    if (field === 'earliestYear') {
+      if (inputValues[field] === '' || isNaN(value) || value < 1950 || value > currentYear) {
+        setInputValues(prev => ({ ...prev, [field]: fallbackValue?.toString() ?? '' }));
+      }
+    } else {
+      // For all other numeric fields, reject 0, negative values, empty, or NaN
+      if (inputValues[field] === '' || isNaN(value) || value <= 0) {
+        setInputValues(prev => ({ ...prev, [field]: fallbackValue?.toString() ?? '' }));
+      }
     }
   };
 
+  // Save current round settings
+  const handleSave = () => {
+    // Check for validation errors before saving
+    const currentYear = new Date().getFullYear();
+    const firstRound = selectedRounds && selectedRounds.length > 0 ? selectedRounds[currentRoundIdx] : null;
+    
+    if (firstRound && firstRound.id === 5) { // Hit Year round
+      const yearValue = parseInt(inputValues.earliestYear);
+      if (isNaN(yearValue) || yearValue < 1950 || yearValue > currentYear) {
+        return; // Don't save if year is invalid
+      }
+    }
+    
+    // Check all other numeric fields for positive values
+    const numericFields = ['muteDuration', 'duration', 'selectionTime', 'points', 'timeBetween', 'numQuestions'];
+    for (const field of numericFields) {
+      if (inputValues[field] !== '') {
+        const value = parseInt(inputValues[field]);
+        if (isNaN(value) || value <= 0) {
+          return; // Don't save if any field has invalid value
+        }
+      }
+    }
+    
+    const currentSettings = workingRoundSettings[currentRoundIdx];
+    setSavedRoundSettings(prev => ({
+      ...prev,
+      [currentRoundIdx]: { ...currentSettings }
+    }));
+    setHasUnsavedChanges(false);
+  };
+
+  // Restore to default settings
+  const handleRestore = () => {
+    setWorkingRoundSettings(prev => ({
+      ...prev,
+      [currentRoundIdx]: { ...defaultSettings }
+    }));
+    setSavedRoundSettings(prev => ({
+      ...prev,
+      [currentRoundIdx]: { ...defaultSettings }
+    }));
+    setHasUnsavedChanges(false);
+  };
+
   const renderRoundSettings = () => {
+    const firstRound = selectedRounds && selectedRounds.length > 0 ? selectedRounds[currentRoundIdx] : null;
     if (!firstRound) return null;
-    const currentSettings = roundSettings[currentRoundIdx] || {};
+    const currentSettings = workingRoundSettings[currentRoundIdx] || {};
+    
     if (firstRound.id === 1) {
       // Intro Drop settings
       return (
@@ -423,7 +579,10 @@ function SettingsPage({ onBack, selectedRounds }) {
                 type="number"
                 min="1"
                 max="30"
-                className="settings-modern-input"
+                className={`settings-modern-input ${(() => {
+                  const value = parseInt(inputValues.muteDuration); // change field name as needed
+                  return (isNaN(value) || value <= 0) ? 'invalid' : '';
+                })()}`}
                 id="muteDuration"
                 value={inputValues.muteDuration}
                 onChange={e => handleInputChange('muteDuration', e.target.value)}
@@ -454,7 +613,10 @@ function SettingsPage({ onBack, selectedRounds }) {
               type="number"
               min="1"
               max="20"
-              className="settings-modern-input"
+              className={`settings-modern-input ${(() => {
+                const value = parseInt(inputValues.points); // change field name as needed
+                return (isNaN(value) || value <= 0) ? 'invalid' : '';
+              })()}`}
               id="winnersPoints"
               value={inputValues.points}
               onChange={e => handleInputChange('points', e.target.value)}
@@ -484,7 +646,10 @@ function SettingsPage({ onBack, selectedRounds }) {
               type="number"
               min="5"
               max="60"
-              className="settings-modern-input"
+              className={`settings-modern-input ${(() => {
+                const value = parseInt(inputValues.timeBetween); // change field name as needed
+                return (isNaN(value) || value <= 0) ? 'invalid' : '';
+              })()}`}
               id="breakTime"
               value={inputValues.timeBetween}
               onChange={e => handleInputChange('timeBetween', e.target.value)}
@@ -514,7 +679,602 @@ function SettingsPage({ onBack, selectedRounds }) {
               type="number"
               min="1"
               max="50"
-              className="settings-modern-input"
+              className={`settings-modern-input ${(() => {
+                const value = parseInt(inputValues.numQuestions); // change field name as needed
+                return (isNaN(value) || value <= 0) ? 'invalid' : '';
+              })()}`}
+              id="questions"
+              value={inputValues.numQuestions}
+              onChange={e => handleInputChange('numQuestions', e.target.value)}
+              onBlur={() => handleInputBlur('numQuestions', currentSettings.numQuestions)}
+              autoComplete="off"
+            />
+          </div>
+        </div>
+      );
+    } else if (firstRound.id === 2) {
+      // Movie Match settings
+      return (
+        <div className="settings-modern-group">
+          <div className="settings-modern-row" style={{ position: 'relative' }}>
+            <span style={{ flex: 1, textAlign: 'left', display: 'flex', alignItems: 'center' }}>
+              Duration
+              <span className="settings-info-icon-wrapper">
+                <span
+                  ref={el => iconRefs.current['duration'] = el}
+                  className="settings-info-icon"
+                  onMouseEnter={() => showTooltip('duration', 'How long the song plays for each question.')}
+                  onMouseLeave={hideTooltip}
+                >
+                  <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10" stroke="#60efff" strokeWidth="2.5" fill="none"/>
+                    <rect x="11" y="10" width="2" height="6" rx="1" fill="#60efff"/>
+                    <circle cx="12" cy="7.2" r="1.2" fill="#60efff"/>
+                  </svg>
+                </span>
+              </span>
+            </span>
+            <input
+              type="number"
+              min="5"
+              max="60"
+              className={`settings-modern-input ${(() => {
+                const value = parseInt(inputValues.duration); // change field name as needed
+                return (isNaN(value) || value <= 0) ? 'invalid' : '';
+              })()}`}
+              id="duration"
+              value={inputValues.duration}
+              onChange={e => handleInputChange('duration', e.target.value)}
+              onBlur={() => handleInputBlur('duration', currentSettings.duration)}
+              autoComplete="off"
+            />
+          </div>
+          <div className="settings-modern-row" style={{ position: 'relative' }}>
+            <span style={{ flex: 1, textAlign: 'left', display: 'flex', alignItems: 'center' }}>
+              Break Time
+              <span className="settings-info-icon-wrapper">
+                <span
+                  ref={el => iconRefs.current['breakTime'] = el}
+                  className="settings-info-icon"
+                  onMouseEnter={() => showTooltip('breakTime', 'How many seconds between each question.')}
+                  onMouseLeave={hideTooltip}
+                >
+                  <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10" stroke="#60efff" strokeWidth="2.5" fill="none"/>
+                    <rect x="11" y="10" width="2" height="6" rx="1" fill="#60efff"/>
+                    <circle cx="12" cy="7.2" r="1.2" fill="#60efff"/>
+                  </svg>
+                </span>
+              </span>
+            </span>
+            <input
+              type="number"
+              min="5"
+              max="60"
+              className={`settings-modern-input ${(() => {
+                const value = parseInt(inputValues.timeBetween); // change field name as needed
+                return (isNaN(value) || value <= 0) ? 'invalid' : '';
+              })()}`}
+              id="breakTime"
+              value={inputValues.timeBetween}
+              onChange={e => handleInputChange('timeBetween', e.target.value)}
+              onBlur={() => handleInputBlur('timeBetween', currentSettings.timeBetween)}
+              autoComplete="off"
+            />
+          </div>
+          <div className="settings-modern-row" style={{ position: 'relative' }}>
+            <span style={{ flex: 1, textAlign: 'left', display: 'flex', alignItems: 'center' }}>
+              Questions
+              <span className="settings-info-icon-wrapper">
+                <span
+                  ref={el => iconRefs.current['questions'] = el}
+                  className="settings-info-icon"
+                  onMouseEnter={() => showTooltip('questions', 'How many questions will be in this round.')}
+                  onMouseLeave={hideTooltip}
+                >
+                  <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10" stroke="#60efff" strokeWidth="2.5" fill="none"/>
+                    <rect x="11" y="10" width="2" height="6" rx="1" fill="#60efff"/>
+                    <circle cx="12" cy="7.2" r="1.2" fill="#60efff"/>
+                  </svg>
+                </span>
+              </span>
+            </span>
+            <input
+              type="number"
+              min="1"
+              max="50"
+              className={`settings-modern-input ${(() => {
+                const value = parseInt(inputValues.numQuestions); // change field name as needed
+                return (isNaN(value) || value <= 0) ? 'invalid' : '';
+              })()}`}
+              id="questions"
+              value={inputValues.numQuestions}
+              onChange={e => handleInputChange('numQuestions', e.target.value)}
+              onBlur={() => handleInputBlur('numQuestions', currentSettings.numQuestions)}
+              autoComplete="off"
+            />
+          </div>
+        </div>
+      );
+    } else if (firstRound.id === 3) {
+      // Tune Dash settings
+      return (
+        <div className="settings-modern-group">
+          <div className="settings-modern-row" style={{ position: 'relative' }}>
+            <span style={{ flex: 1, textAlign: 'left', display: 'flex', alignItems: 'center' }}>
+              Duration
+              <span className="settings-info-icon-wrapper">
+                <span
+                  ref={el => iconRefs.current['duration'] = el}
+                  className="settings-info-icon"
+                  onMouseEnter={() => showTooltip('duration', 'How long the song plays for each question.')}
+                  onMouseLeave={hideTooltip}
+                >
+                  <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10" stroke="#60efff" strokeWidth="2.5" fill="none"/>
+                    <rect x="11" y="10" width="2" height="6" rx="1" fill="#60efff"/>
+                    <circle cx="12" cy="7.2" r="1.2" fill="#60efff"/>
+                  </svg>
+                </span>
+              </span>
+            </span>
+            <input
+              type="number"
+              min="5"
+              max="60"
+              className={`settings-modern-input ${(() => {
+                const value = parseInt(inputValues.duration); // change field name as needed
+                return (isNaN(value) || value <= 0) ? 'invalid' : '';
+              })()}`}
+              id="duration"
+              value={inputValues.duration}
+              onChange={e => handleInputChange('duration', e.target.value)}
+              onBlur={() => handleInputBlur('duration', currentSettings.duration)}
+              autoComplete="off"
+            />
+          </div>
+          <div className="settings-modern-row" style={{ position: 'relative' }}>
+            <span style={{ flex: 1, textAlign: 'left', display: 'flex', alignItems: 'center' }}>
+              Break Time
+              <span className="settings-info-icon-wrapper">
+                <span
+                  ref={el => iconRefs.current['breakTime'] = el}
+                  className="settings-info-icon"
+                  onMouseEnter={() => showTooltip('breakTime', 'How many seconds between each question.')}
+                  onMouseLeave={hideTooltip}
+                >
+                  <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10" stroke="#60efff" strokeWidth="2.5" fill="none"/>
+                    <rect x="11" y="10" width="2" height="6" rx="1" fill="#60efff"/>
+                    <circle cx="12" cy="7.2" r="1.2" fill="#60efff"/>
+                  </svg>
+                </span>
+              </span>
+            </span>
+            <input
+              type="number"
+              min="5"
+              max="60"
+              className={`settings-modern-input ${(() => {
+                const value = parseInt(inputValues.timeBetween); // change field name as needed
+                return (isNaN(value) || value <= 0) ? 'invalid' : '';
+              })()}`}
+              id="breakTime"
+              value={inputValues.timeBetween}
+              onChange={e => handleInputChange('timeBetween', e.target.value)}
+              onBlur={() => handleInputBlur('timeBetween', currentSettings.timeBetween)}
+              autoComplete="off"
+            />
+          </div>
+          <div className="settings-modern-row" style={{ position: 'relative' }}>
+            <span style={{ flex: 1, textAlign: 'left', display: 'flex', alignItems: 'center' }}>
+              Questions
+              <span className="settings-info-icon-wrapper">
+                <span
+                  ref={el => iconRefs.current['questions'] = el}
+                  className="settings-info-icon"
+                  onMouseEnter={() => showTooltip('questions', 'How many questions will be in this round.')}
+                  onMouseLeave={hideTooltip}
+                >
+                  <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10" stroke="#60efff" strokeWidth="2.5" fill="none"/>
+                    <rect x="11" y="10" width="2" height="6" rx="1" fill="#60efff"/>
+                    <circle cx="12" cy="7.2" r="1.2" fill="#60efff"/>
+                  </svg>
+                </span>
+              </span>
+            </span>
+            <input
+              type="number"
+              min="1"
+              max="50"
+              className={`settings-modern-input ${(() => {
+                const value = parseInt(inputValues.numQuestions); // change field name as needed
+                return (isNaN(value) || value <= 0) ? 'invalid' : '';
+              })()}`}
+              id="questions"
+              value={inputValues.numQuestions}
+              onChange={e => handleInputChange('numQuestions', e.target.value)}
+              onBlur={() => handleInputBlur('numQuestions', currentSettings.numQuestions)}
+              autoComplete="off"
+            />
+          </div>
+        </div>
+      );
+    } else if (firstRound.id === 4) {
+      // Album Gamble settings
+      return (
+        <div className="settings-modern-group">
+          <div className="settings-modern-row" style={{ position: 'relative' }}>
+            <span style={{ flex: 1, textAlign: 'left', display: 'flex', alignItems: 'center' }}>
+              Selection Time
+              <span className="settings-info-icon-wrapper">
+                <span
+                  ref={el => iconRefs.current['selectionTime'] = el}
+                  className="settings-info-icon"
+                  onMouseEnter={() => showTooltip('selectionTime', 'How long you have to pick a song from the album.')}
+                  onMouseLeave={hideTooltip}
+                >
+                  <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10" stroke="#60efff" strokeWidth="2.5" fill="none"/>
+                    <rect x="11" y="10" width="2" height="6" rx="1" fill="#60efff"/>
+                    <circle cx="12" cy="7.2" r="1.2" fill="#60efff"/>
+                  </svg>
+                </span>
+              </span>
+            </span>
+            <input
+              type="number"
+              min="10"
+              max="120"
+              className={`settings-modern-input ${(() => {
+                const value = parseInt(inputValues.selectionTime); // change field name as needed
+                return (isNaN(value) || value <= 0) ? 'invalid' : '';
+              })()}`}
+              id="selectionTime"
+              value={inputValues.selectionTime}
+              onChange={e => handleInputChange('selectionTime', e.target.value)}
+              onBlur={() => handleInputBlur('selectionTime', currentSettings.selectionTime)}
+              autoComplete="off"
+            />
+          </div>
+          <div className="settings-modern-row" style={{ position: 'relative' }}>
+            <span style={{ flex: 1, textAlign: 'left', display: 'flex', alignItems: 'center' }}>
+              Break Time
+              <span className="settings-info-icon-wrapper">
+                <span
+                  ref={el => iconRefs.current['breakTime'] = el}
+                  className="settings-info-icon"
+                  onMouseEnter={() => showTooltip('breakTime', 'How many seconds between each question.')}
+                  onMouseLeave={hideTooltip}
+                >
+                  <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10" stroke="#60efff" strokeWidth="2.5" fill="none"/>
+                    <rect x="11" y="10" width="2" height="6" rx="1" fill="#60efff"/>
+                    <circle cx="12" cy="7.2" r="1.2" fill="#60efff"/>
+                  </svg>
+                </span>
+              </span>
+            </span>
+            <input
+              type="number"
+              min="5"
+              max="60"
+              className={`settings-modern-input ${(() => {
+                const value = parseInt(inputValues.timeBetween); // change field name as needed
+                return (isNaN(value) || value <= 0) ? 'invalid' : '';
+              })()}`}
+              id="breakTime"
+              value={inputValues.timeBetween}
+              onChange={e => handleInputChange('timeBetween', e.target.value)}
+              onBlur={() => handleInputBlur('timeBetween', currentSettings.timeBetween)}
+              autoComplete="off"
+            />
+          </div>
+          <div className="settings-modern-row" style={{ position: 'relative' }}>
+            <span style={{ flex: 1, textAlign: 'left', display: 'flex', alignItems: 'center' }}>
+              Questions
+              <span className="settings-info-icon-wrapper">
+                <span
+                  ref={el => iconRefs.current['questions'] = el}
+                  className="settings-info-icon"
+                  onMouseEnter={() => showTooltip('questions', 'How many questions will be in this round.')}
+                  onMouseLeave={hideTooltip}
+                >
+                  <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10" stroke="#60efff" strokeWidth="2.5" fill="none"/>
+                    <rect x="11" y="10" width="2" height="6" rx="1" fill="#60efff"/>
+                    <circle cx="12" cy="7.2" r="1.2" fill="#60efff"/>
+                  </svg>
+                </span>
+              </span>
+            </span>
+            <input
+              type="number"
+              min="1"
+              max="50"
+              className={`settings-modern-input ${(() => {
+                const value = parseInt(inputValues.numQuestions); // change field name as needed
+                return (isNaN(value) || value <= 0) ? 'invalid' : '';
+              })()}`}
+              id="questions"
+              value={inputValues.numQuestions}
+              onChange={e => handleInputChange('numQuestions', e.target.value)}
+              onBlur={() => handleInputBlur('numQuestions', currentSettings.numQuestions)}
+              autoComplete="off"
+            />
+          </div>
+        </div>
+      );
+    } else if (firstRound.id === 5) {
+      // Hit Year settings
+      return (
+        <div className="settings-modern-group">
+          <div className="settings-modern-row" style={{ position: 'relative' }}>
+            <span style={{ flex: 1, textAlign: 'left', display: 'flex', alignItems: 'center' }}>
+              Earliest Year
+              <span className="settings-info-icon-wrapper">
+                <span
+                  ref={el => iconRefs.current['earliestYear'] = el}
+                  className="settings-info-icon"
+                  onMouseEnter={() => showTooltip('earliestYear', 'The earliest year a #1 hit can be selected from.')}
+                  onMouseLeave={hideTooltip}
+                >
+                  <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10" stroke="#60efff" strokeWidth="2.5" fill="none"/>
+                    <rect x="11" y="10" width="2" height="6" rx="1" fill="#60efff"/>
+                    <circle cx="12" cy="7.2" r="1.2" fill="#60efff"/>
+                  </svg>
+                </span>
+              </span>
+            </span>
+            <input
+              type="number"
+              min="1950"
+              max={new Date().getFullYear()}
+              className={`settings-modern-input ${(() => {
+                const yearValue = parseInt(inputValues.earliestYear);
+                const currentYear = new Date().getFullYear();
+                return (isNaN(yearValue) || yearValue < 1950 || yearValue > currentYear) ? 'invalid' : '';
+              })()}`}
+              id="earliestYear"
+              value={inputValues.earliestYear}
+              onChange={e => handleInputChange('earliestYear', e.target.value)}
+              onBlur={() => handleInputBlur('earliestYear', currentSettings.earliestYear)}
+              autoComplete="off"
+            />
+          </div>
+          <div className="settings-modern-row" style={{ position: 'relative' }}>
+            <span style={{ flex: 1, textAlign: 'left', display: 'flex', alignItems: 'center' }}>
+              Duration
+              <span className="settings-info-icon-wrapper">
+                <span
+                  ref={el => iconRefs.current['duration'] = el}
+                  className="settings-info-icon"
+                  onMouseEnter={() => showTooltip('duration', 'How long the song plays for each question.')}
+                  onMouseLeave={hideTooltip}
+                >
+                  <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10" stroke="#60efff" strokeWidth="2.5" fill="none"/>
+                    <rect x="11" y="10" width="2" height="6" rx="1" fill="#60efff"/>
+                    <circle cx="12" cy="7.2" r="1.2" fill="#60efff"/>
+                  </svg>
+                </span>
+              </span>
+            </span>
+            <input
+              type="number"
+              min="5"
+              max="60"
+              className={`settings-modern-input ${(() => {
+                const value = parseInt(inputValues.duration); // change field name as needed
+                return (isNaN(value) || value <= 0) ? 'invalid' : '';
+              })()}`}
+              id="duration"
+              value={inputValues.duration}
+              onChange={e => handleInputChange('duration', e.target.value)}
+              onBlur={() => handleInputBlur('duration', currentSettings.duration)}
+              autoComplete="off"
+            />
+          </div>
+          <div className="settings-modern-row" style={{ position: 'relative' }}>
+            <span style={{ flex: 1, textAlign: 'left', display: 'flex', alignItems: 'center' }}>
+              Winners Points
+              <span className="settings-info-icon-wrapper">
+                <span
+                  ref={el => iconRefs.current['winnersPoints'] = el}
+                  className="settings-info-icon"
+                  onMouseEnter={() => showTooltip('winnersPoints', 'How many points are awarded to the winner of each round.')}
+                  onMouseLeave={hideTooltip}
+                >
+                  <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10" stroke="#60efff" strokeWidth="2.5" fill="none"/>
+                    <rect x="11" y="10" width="2" height="6" rx="1" fill="#60efff"/>
+                    <circle cx="12" cy="7.2" r="1.2" fill="#60efff"/>
+                  </svg>
+                </span>
+              </span>
+            </span>
+            <input
+              type="number"
+              min="1"
+              max="20"
+              className={`settings-modern-input ${(() => {
+                const value = parseInt(inputValues.points); // change field name as needed
+                return (isNaN(value) || value <= 0) ? 'invalid' : '';
+              })()}`}
+              id="winnersPoints"
+              value={inputValues.points}
+              onChange={e => handleInputChange('points', e.target.value)}
+              onBlur={() => handleInputBlur('points', currentSettings.points)}
+              autoComplete="off"
+            />
+          </div>
+          <div className="settings-modern-row" style={{ position: 'relative' }}>
+            <span style={{ flex: 1, textAlign: 'left', display: 'flex', alignItems: 'center' }}>
+              Break Time
+              <span className="settings-info-icon-wrapper">
+                <span
+                  ref={el => iconRefs.current['breakTime'] = el}
+                  className="settings-info-icon"
+                  onMouseEnter={() => showTooltip('breakTime', 'How many seconds between each question.')}
+                  onMouseLeave={hideTooltip}
+                >
+                  <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10" stroke="#60efff" strokeWidth="2.5" fill="none"/>
+                    <rect x="11" y="10" width="2" height="6" rx="1" fill="#60efff"/>
+                    <circle cx="12" cy="7.2" r="1.2" fill="#60efff"/>
+                  </svg>
+                </span>
+              </span>
+            </span>
+            <input
+              type="number"
+              min="5"
+              max="60"
+              className={`settings-modern-input ${(() => {
+                const value = parseInt(inputValues.timeBetween); // change field name as needed
+                return (isNaN(value) || value <= 0) ? 'invalid' : '';
+              })()}`}
+              id="breakTime"
+              value={inputValues.timeBetween}
+              onChange={e => handleInputChange('timeBetween', e.target.value)}
+              onBlur={() => handleInputBlur('timeBetween', currentSettings.timeBetween)}
+              autoComplete="off"
+            />
+          </div>
+          <div className="settings-modern-row" style={{ position: 'relative' }}>
+            <span style={{ flex: 1, textAlign: 'left', display: 'flex', alignItems: 'center' }}>
+              Questions
+              <span className="settings-info-icon-wrapper">
+                <span
+                  ref={el => iconRefs.current['questions'] = el}
+                  className="settings-info-icon"
+                  onMouseEnter={() => showTooltip('questions', 'How many questions will be in this round.')}
+                  onMouseLeave={hideTooltip}
+                >
+                  <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10" stroke="#60efff" strokeWidth="2.5" fill="none"/>
+                    <rect x="11" y="10" width="2" height="6" rx="1" fill="#60efff"/>
+                    <circle cx="12" cy="7.2" r="1.2" fill="#60efff"/>
+                  </svg>
+                </span>
+              </span>
+            </span>
+            <input
+              type="number"
+              min="1"
+              max="50"
+              className={`settings-modern-input ${(() => {
+                const value = parseInt(inputValues.numQuestions); // change field name as needed
+                return (isNaN(value) || value <= 0) ? 'invalid' : '';
+              })()}`}
+              id="questions"
+              value={inputValues.numQuestions}
+              onChange={e => handleInputChange('numQuestions', e.target.value)}
+              onBlur={() => handleInputBlur('numQuestions', currentSettings.numQuestions)}
+              autoComplete="off"
+            />
+          </div>
+        </div>
+      );
+    } else if (firstRound.id === 6) {
+      // Cover Clash settings
+      return (
+        <div className="settings-modern-group">
+          <div className="settings-modern-row" style={{ position: 'relative' }}>
+            <span style={{ flex: 1, textAlign: 'left', display: 'flex', alignItems: 'center' }}>
+              Duration
+              <span className="settings-info-icon-wrapper">
+                <span
+                  ref={el => iconRefs.current['duration'] = el}
+                  className="settings-info-icon"
+                  onMouseEnter={() => showTooltip('duration', 'How long the cover song plays for each question.')}
+                  onMouseLeave={hideTooltip}
+                >
+                  <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10" stroke="#60efff" strokeWidth="2.5" fill="none"/>
+                    <rect x="11" y="10" width="2" height="6" rx="1" fill="#60efff"/>
+                    <circle cx="12" cy="7.2" r="1.2" fill="#60efff"/>
+                  </svg>
+                </span>
+              </span>
+            </span>
+            <input
+              type="number"
+              min="5"
+              max="60"
+              className={`settings-modern-input ${(() => {
+                const value = parseInt(inputValues.duration); // change field name as needed
+                return (isNaN(value) || value <= 0) ? 'invalid' : '';
+              })()}`}
+              id="duration"
+              value={inputValues.duration}
+              onChange={e => handleInputChange('duration', e.target.value)}
+              onBlur={() => handleInputBlur('duration', currentSettings.duration)}
+              autoComplete="off"
+            />
+          </div>
+          <div className="settings-modern-row" style={{ position: 'relative' }}>
+            <span style={{ flex: 1, textAlign: 'left', display: 'flex', alignItems: 'center' }}>
+              Break Time
+              <span className="settings-info-icon-wrapper">
+                <span
+                  ref={el => iconRefs.current['breakTime'] = el}
+                  className="settings-info-icon"
+                  onMouseEnter={() => showTooltip('breakTime', 'How many seconds between each question.')}
+                  onMouseLeave={hideTooltip}
+                >
+                  <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10" stroke="#60efff" strokeWidth="2.5" fill="none"/>
+                    <rect x="11" y="10" width="2" height="6" rx="1" fill="#60efff"/>
+                    <circle cx="12" cy="7.2" r="1.2" fill="#60efff"/>
+                  </svg>
+                </span>
+              </span>
+            </span>
+            <input
+              type="number"
+              min="5"
+              max="60"
+              className={`settings-modern-input ${(() => {
+                const value = parseInt(inputValues.timeBetween); // change field name as needed
+                return (isNaN(value) || value <= 0) ? 'invalid' : '';
+              })()}`}
+              id="breakTime"
+              value={inputValues.timeBetween}
+              onChange={e => handleInputChange('timeBetween', e.target.value)}
+              onBlur={() => handleInputBlur('timeBetween', currentSettings.timeBetween)}
+              autoComplete="off"
+            />
+          </div>
+          <div className="settings-modern-row" style={{ position: 'relative' }}>
+            <span style={{ flex: 1, textAlign: 'left', display: 'flex', alignItems: 'center' }}>
+              Questions
+              <span className="settings-info-icon-wrapper">
+                <span
+                  ref={el => iconRefs.current['questions'] = el}
+                  className="settings-info-icon"
+                  onMouseEnter={() => showTooltip('questions', 'How many questions will be in this round.')}
+                  onMouseLeave={hideTooltip}
+                >
+                  <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10" stroke="#60efff" strokeWidth="2.5" fill="none"/>
+                    <rect x="11" y="10" width="2" height="6" rx="1" fill="#60efff"/>
+                    <circle cx="12" cy="7.2" r="1.2" fill="#60efff"/>
+                  </svg>
+                </span>
+              </span>
+            </span>
+            <input
+              type="number"
+              min="1"
+              max="50"
+              className={`settings-modern-input ${(() => {
+                const value = parseInt(inputValues.numQuestions); // change field name as needed
+                return (isNaN(value) || value <= 0) ? 'invalid' : '';
+              })()}`}
               id="questions"
               value={inputValues.numQuestions}
               onChange={e => handleInputChange('numQuestions', e.target.value)}
@@ -529,9 +1289,11 @@ function SettingsPage({ onBack, selectedRounds }) {
     return null;
   };
 
+  const firstRound = selectedRounds && selectedRounds.length > 0 ? selectedRounds[currentRoundIdx] : null;
+
   return (
     <>
-      <div className="quiz-creation-screen" style={{ minHeight: '100vh', overflowY: 'auto', paddingTop: 0 }}>
+      <div className="quiz-creation-screen" style={{ minHeight: '100vh', overflowY: 'auto', paddingTop: 0, paddingBottom: '120px' }}>
         <button className="back-btn" onClick={onBack} style={{ marginBottom: '0.7rem', top: 12, left: 18 }}>
           <span className="back-arrow" aria-hidden="true">&#8592;</span> Back
         </button>
@@ -539,13 +1301,13 @@ function SettingsPage({ onBack, selectedRounds }) {
           <div className="settings-tabs">
             <button 
               className={`settings-tab-btn${activeTab === 'rounds' ? ' active' : ''}`}
-              onClick={() => setActiveTab('rounds')}
+              onClick={() => handleTabChange('rounds')}
             >
               Round Settings
             </button>
             <button 
               className={`settings-tab-btn${activeTab === 'game' ? ' active' : ''}`}
-              onClick={() => setActiveTab('game')}
+              onClick={() => handleTabChange('game')}
             >
               Game Settings
             </button>
@@ -587,6 +1349,11 @@ function SettingsPage({ onBack, selectedRounds }) {
                       flex: 1,
                     }}>
                       Round {currentRoundIdx + 1}: {firstRound.name}
+                      {hasUnsavedChanges && (
+                        <span style={{ color: '#ff6b6b', fontSize: '0.8em', marginLeft: '0.5em' }}>
+                          (Unsaved)
+                        </span>
+                      )}
                     </div>
                     <button
                       onClick={handleNext}
@@ -619,14 +1386,22 @@ function SettingsPage({ onBack, selectedRounds }) {
       
       {/* Save and Restore Buttons */}
       <div className="settings-action-buttons">
-        <button className="settings-save-btn">
+        <button 
+          className="settings-save-btn"
+          onClick={handleSave}
+          disabled={!hasUnsavedChanges}
+          style={{
+            opacity: hasUnsavedChanges ? 1 : 0.5,
+            cursor: hasUnsavedChanges ? 'pointer' : 'not-allowed'
+          }}
+        >
           Save Settings
         </button>
-        <button className="settings-restore-btn">
+        <button className="settings-restore-btn" onClick={handleRestore}>
           Restore Defaults
         </button>
       </div>
-
+      
       {/* Global tooltip that renders outside of all containers */}
       <GlobalTooltip tooltip={globalTooltip.tooltip} position={globalTooltip.position} />
     </>
