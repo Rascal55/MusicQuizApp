@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import './App.css'
 
 // Staff line Y positions (relative to SVG viewBox)
@@ -243,6 +243,38 @@ function SelectedRoundsShowcase({ selectedRounds, setSelectedRounds }) {
   );
 }
 
+// Global tooltip component that renders outside of containers
+function GlobalTooltip({ tooltip, position }) {
+  if (!tooltip || !position) return null;
+  
+  return (
+    <div 
+      className="global-tooltip"
+      style={{
+        position: 'fixed',
+        left: position.x,
+        top: position.y,
+        transform: 'translateX(-50%)',
+        visibility: 'visible',
+        opacity: 1,
+        width: '240px',
+        background: '#181e2a',
+        color: '#fff',
+        textAlign: 'left',
+        borderRadius: '8px',
+        padding: '0.7em 1em',
+        zIndex: 1000,
+        boxShadow: '0 4px 16px #60efff33',
+        fontSize: '0.98em',
+        fontWeight: 400,
+        pointerEvents: 'none',
+      }}
+    >
+      {tooltip}
+    </div>
+  );
+}
+
 function SettingsPage({ onBack, selectedRounds }) {
   const [activeTab, setActiveTab] = useState('rounds'); // 'rounds' or 'game'
   const [currentRoundIdx, setCurrentRoundIdx] = useState(0);
@@ -260,20 +292,31 @@ function SettingsPage({ onBack, selectedRounds }) {
   // Local state for display values of number inputs
   const [inputValues, setInputValues] = useState({ ...defaultSettings });
 
-  // Tooltip state: which (if any) is open by click
-  const [openTooltip, setOpenTooltip] = useState(null);
-  // Track if the tooltip is open by click (sticky) or just by hover
-  const [hoveredTooltip, setHoveredTooltip] = useState(null);
-  useEffect(() => {
-    const handleClickOutside = () => setOpenTooltip(null);
-    if (openTooltip !== null) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [openTooltip]);
+  // Global tooltip state
+  const [globalTooltip, setGlobalTooltip] = useState({ tooltip: null, position: null });
+  
+  // Refs for tooltip positioning
+  const iconRefs = useRef({});
 
-  // Helper to determine if a tooltip should be shown
-  const isTooltipOpen = (key) => openTooltip === key || hoveredTooltip === key;
+  // Handle tooltip show
+  const showTooltip = (key, text) => {
+    const iconElement = iconRefs.current[key];
+    if (iconElement) {
+      const rect = iconElement.getBoundingClientRect();
+      setGlobalTooltip({
+        tooltip: text,
+        position: {
+          x: rect.left + rect.width / 2,
+          y: rect.bottom + 10
+        }
+      });
+    }
+  };
+
+  // Handle tooltip hide
+  const hideTooltip = () => {
+    setGlobalTooltip({ tooltip: null, position: null });
+  };
 
   // Sync inputValues with roundSettings when round changes
   useEffect(() => {
@@ -326,18 +369,16 @@ function SettingsPage({ onBack, selectedRounds }) {
               Random Duration
               <span className="settings-info-icon-wrapper">
                 <span
+                  ref={el => iconRefs.current['randomDuration'] = el}
                   className="settings-info-icon"
-                  onMouseEnter={() => setHoveredTooltip('randomDuration')}
-                  onMouseLeave={() => setHoveredTooltip(null)}
+                  onMouseEnter={() => showTooltip('randomDuration', 'If enabled, the mute duration will be random each round.')}
+                  onMouseLeave={hideTooltip}
                 >
                   <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
                     <circle cx="12" cy="12" r="10" stroke="#60efff" strokeWidth="2.5" fill="none"/>
                     <rect x="11" y="10" width="2" height="6" rx="1" fill="#60efff"/>
                     <circle cx="12" cy="7.2" r="1.2" fill="#60efff"/>
                   </svg>
-                </span>
-                <span className={`settings-info-tooltip ${hoveredTooltip === 'randomDuration' ? 'visible' : ''}`}>
-                  If enabled, the mute duration will be random each round.
                 </span>
               </span>
             </span>
@@ -365,18 +406,16 @@ function SettingsPage({ onBack, selectedRounds }) {
                 Mute Duration
                 <span className="settings-info-icon-wrapper">
                   <span
+                    ref={el => iconRefs.current['muteDuration'] = el}
                     className="settings-info-icon"
-                    onMouseEnter={() => setHoveredTooltip('muteDuration')}
-                    onMouseLeave={() => setHoveredTooltip(null)}
+                    onMouseEnter={() => showTooltip('muteDuration', 'How many seconds until the music is muted for each question.')}
+                    onMouseLeave={hideTooltip}
                   >
                     <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
                       <circle cx="12" cy="12" r="10" stroke="#60efff" strokeWidth="2.5" fill="none"/>
                       <rect x="11" y="10" width="2" height="6" rx="1" fill="#60efff"/>
                       <circle cx="12" cy="7.2" r="1.2" fill="#60efff"/>
                     </svg>
-                  </span>
-                  <span className={`settings-info-tooltip ${hoveredTooltip === 'muteDuration' ? 'visible' : ''}`}>
-                    How many seconds until the music is muted for each question.
                   </span>
                 </span>
               </span>
@@ -398,18 +437,16 @@ function SettingsPage({ onBack, selectedRounds }) {
               Winners Points
               <span className="settings-info-icon-wrapper">
                 <span
+                  ref={el => iconRefs.current['winnersPoints'] = el}
                   className="settings-info-icon"
-                  onMouseEnter={() => setHoveredTooltip('winnersPoints')}
-                  onMouseLeave={() => setHoveredTooltip(null)}
+                  onMouseEnter={() => showTooltip('winnersPoints', 'How many points are awarded to the winner of each round.')}
+                  onMouseLeave={hideTooltip}
                 >
                   <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
                     <circle cx="12" cy="12" r="10" stroke="#60efff" strokeWidth="2.5" fill="none"/>
                     <rect x="11" y="10" width="2" height="6" rx="1" fill="#60efff"/>
                     <circle cx="12" cy="7.2" r="1.2" fill="#60efff"/>
                   </svg>
-                </span>
-                <span className={`settings-info-tooltip ${hoveredTooltip === 'winnersPoints' ? 'visible' : ''}`}>
-                  How many points are awarded to the winner of each round.
                 </span>
               </span>
             </span>
@@ -430,18 +467,16 @@ function SettingsPage({ onBack, selectedRounds }) {
               Break Time
               <span className="settings-info-icon-wrapper">
                 <span
+                  ref={el => iconRefs.current['breakTime'] = el}
                   className="settings-info-icon"
-                  onMouseEnter={() => setHoveredTooltip('breakTime')}
-                  onMouseLeave={() => setHoveredTooltip(null)}
+                  onMouseEnter={() => showTooltip('breakTime', 'How many seconds between each question.')}
+                  onMouseLeave={hideTooltip}
                 >
                   <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
                     <circle cx="12" cy="12" r="10" stroke="#60efff" strokeWidth="2.5" fill="none"/>
                     <rect x="11" y="10" width="2" height="6" rx="1" fill="#60efff"/>
                     <circle cx="12" cy="7.2" r="1.2" fill="#60efff"/>
                   </svg>
-                </span>
-                <span className={`settings-info-tooltip ${hoveredTooltip === 'breakTime' ? 'visible' : ''}`}>
-                  How many seconds between each question.
                 </span>
               </span>
             </span>
@@ -462,18 +497,16 @@ function SettingsPage({ onBack, selectedRounds }) {
               Questions
               <span className="settings-info-icon-wrapper">
                 <span
+                  ref={el => iconRefs.current['questions'] = el}
                   className="settings-info-icon"
-                  onMouseEnter={() => setHoveredTooltip('questions')}
-                  onMouseLeave={() => setHoveredTooltip(null)}
+                  onMouseEnter={() => showTooltip('questions', 'How many questions will be in this round.')}
+                  onMouseLeave={hideTooltip}
                 >
                   <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
                     <circle cx="12" cy="12" r="10" stroke="#60efff" strokeWidth="2.5" fill="none"/>
                     <rect x="11" y="10" width="2" height="6" rx="1" fill="#60efff"/>
                     <circle cx="12" cy="7.2" r="1.2" fill="#60efff"/>
                   </svg>
-                </span>
-                <span className={`settings-info-tooltip ${hoveredTooltip === 'questions' ? 'visible' : ''}`}>
-                  How many questions will be in this round.
                 </span>
               </span>
             </span>
@@ -497,91 +530,96 @@ function SettingsPage({ onBack, selectedRounds }) {
   };
 
   return (
-    <div className="quiz-creation-screen" style={{ minHeight: '100vh', overflowY: 'auto', paddingTop: 0 }}>
-      <button className="back-btn" onClick={onBack} style={{ marginBottom: '0.7rem', top: 12, left: 18 }}>
-        <span className="back-arrow" aria-hidden="true">&#8592;</span> Back
-      </button>
-      <div className="quiz-creation-center-area" style={{ flex: 1, minHeight: 0, overflow: 'visible', marginTop: 0 }}>
-        <div className="settings-tabs">
-          <button 
-            className={`settings-tab-btn${activeTab === 'rounds' ? ' active' : ''}`}
-            onClick={() => setActiveTab('rounds')}
-          >
-            Round Settings
-          </button>
-          <button 
-            className={`settings-tab-btn${activeTab === 'game' ? ' active' : ''}`}
-            onClick={() => setActiveTab('game')}
-          >
-            Game Settings
-          </button>
-        </div>
-        <div className="settings-content">
-          {activeTab === 'rounds' && (
-            <div className={`round-settings active`}>
-              {firstRound && (
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  marginBottom: '1.6rem',
-                }}>
-                  <button
-                    onClick={handlePrev}
-                    style={{
-                      visibility: currentRoundIdx > 0 ? 'visible' : 'hidden',
-                      background: 'none',
-                      border: 'none',
-                      color: '#60efff',
-                      fontSize: '2rem',
-                      cursor: currentRoundIdx > 0 ? 'pointer' : 'default',
-                      padding: '0 0.7rem',
-                      transition: 'color 0.18s, transform 0.18s',
-                    }}
-                    aria-label="Previous Round"
-                    disabled={currentRoundIdx === 0}
-                  >
-                    &#8592;
-                  </button>
+    <>
+      <div className="quiz-creation-screen" style={{ minHeight: '100vh', overflowY: 'auto', paddingTop: 0 }}>
+        <button className="back-btn" onClick={onBack} style={{ marginBottom: '0.7rem', top: 12, left: 18 }}>
+          <span className="back-arrow" aria-hidden="true">&#8592;</span> Back
+        </button>
+        <div className="quiz-creation-center-area" style={{ flex: 1, minHeight: 0, overflow: 'visible', marginTop: 0 }}>
+          <div className="settings-tabs">
+            <button 
+              className={`settings-tab-btn${activeTab === 'rounds' ? ' active' : ''}`}
+              onClick={() => setActiveTab('rounds')}
+            >
+              Round Settings
+            </button>
+            <button 
+              className={`settings-tab-btn${activeTab === 'game' ? ' active' : ''}`}
+              onClick={() => setActiveTab('game')}
+            >
+              Game Settings
+            </button>
+          </div>
+          <div className="settings-content">
+            {activeTab === 'rounds' && (
+              <div className={`round-settings active`}>
+                {firstRound && (
                   <div style={{
-                    color: '#00ff87',
-                    fontSize: '1.5rem',
-                    fontWeight: 900,
-                    letterSpacing: '0.01em',
-                    textShadow: '0 2px 8px #00ff8766',
-                    textAlign: 'center',
-                    flex: 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginBottom: '1.6rem',
                   }}>
-                    Round {currentRoundIdx + 1}: {firstRound.name}
+                    <button
+                      onClick={handlePrev}
+                      style={{
+                        visibility: currentRoundIdx > 0 ? 'visible' : 'hidden',
+                        background: 'none',
+                        border: 'none',
+                        color: '#60efff',
+                        fontSize: '2rem',
+                        cursor: currentRoundIdx > 0 ? 'pointer' : 'default',
+                        padding: '0 0.7rem',
+                        transition: 'color 0.18s, transform 0.18s',
+                      }}
+                      aria-label="Previous Round"
+                      disabled={currentRoundIdx === 0}
+                    >
+                      &#8592;
+                    </button>
+                    <div style={{
+                      color: '#00ff87',
+                      fontSize: '1.5rem',
+                      fontWeight: 900,
+                      letterSpacing: '0.01em',
+                      textShadow: '0 2px 8px #00ff8766',
+                      textAlign: 'center',
+                      flex: 1,
+                    }}>
+                      Round {currentRoundIdx + 1}: {firstRound.name}
+                    </div>
+                    <button
+                      onClick={handleNext}
+                      style={{
+                        visibility: currentRoundIdx < selectedRounds.length - 1 ? 'visible' : 'hidden',
+                        background: 'none',
+                        border: 'none',
+                        color: '#60efff',
+                        fontSize: '2rem',
+                        cursor: currentRoundIdx < selectedRounds.length - 1 ? 'pointer' : 'default',
+                        padding: '0 0.7rem',
+                        transition: 'color 0.18s, transform 0.18s',
+                      }}
+                      aria-label="Next Round"
+                      disabled={currentRoundIdx === selectedRounds.length - 1}
+                    >
+                      &#8594;
+                    </button>
                   </div>
-                  <button
-                    onClick={handleNext}
-                    style={{
-                      visibility: currentRoundIdx < selectedRounds.length - 1 ? 'visible' : 'hidden',
-                      background: 'none',
-                      border: 'none',
-                      color: '#60efff',
-                      fontSize: '2rem',
-                      cursor: currentRoundIdx < selectedRounds.length - 1 ? 'pointer' : 'default',
-                      padding: '0 0.7rem',
-                      transition: 'color 0.18s, transform 0.18s',
-                    }}
-                    aria-label="Next Round"
-                    disabled={currentRoundIdx === selectedRounds.length - 1}
-                  >
-                    &#8594;
-                  </button>
-                </div>
-              )}
-              {renderRoundSettings()}
-            </div>
-          )}
-          {activeTab === 'game' && (
-            <div className={`game-settings active`}></div>
-          )}
+                )}
+                {renderRoundSettings()}
+              </div>
+            )}
+            {activeTab === 'game' && (
+              <div className={`game-settings active`}></div>
+            )}
+          </div>
         </div>
       </div>
-    </div>
+      
+      {/* Global tooltip that renders outside of all containers */}
+      <GlobalTooltip tooltip={globalTooltip.tooltip} position={globalTooltip.position} />
+    </>
   );
 }
 
