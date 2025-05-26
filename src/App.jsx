@@ -1,24 +1,9 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import './App.css'
-import { getDefaultSettings, validateSettings } from './roundSettings';
-import IntroDropRound from './components/rounds/IntroDropRound';
 
 // Staff line Y positions (relative to SVG viewBox)
 const STAFF_CENTER = 60;
 const STAFF_SPACING = 16;
-const STAFF_LINES = [
-  STAFF_CENTER - 2 * STAFF_SPACING, // Top line
-  STAFF_CENTER - 1 * STAFF_SPACING, // 2nd line
-  STAFF_CENTER,                     // Middle line
-  STAFF_CENTER + 1 * STAFF_SPACING, // 4th line
-  STAFF_CENTER + 2 * STAFF_SPACING, // Bottom line
-];
-const STAFF_SPACES = [
-  STAFF_CENTER - 1.5 * STAFF_SPACING, // Top space
-  STAFF_CENTER - 0.5 * STAFF_SPACING, // 2nd space
-  STAFF_CENTER + 0.5 * STAFF_SPACING, // 3rd space
-  STAFF_CENTER + 1.5 * STAFF_SPACING, // Bottom space
-];
 
 function AnimatedStaff({ bottom = false }) {
   // Wavy SVG path for a staff
@@ -99,7 +84,7 @@ function LandingActions({ onHostClick }) {
   );
 }
 
-function RoundCountSelector({ value, onChange, selectedRounds, errorAnim }) {
+function RoundCountSelector({ value, onChange, errorAnim }) {
   return (
     <div className={`round-count-selector${errorAnim ? ' error-anim' : ''}`}>
       <div className="round-count-label">Select Number of Rounds</div>
@@ -119,113 +104,56 @@ function RoundCountSelector({ value, onChange, selectedRounds, errorAnim }) {
 }
 
 const placeholderRounds = [
-  { id: 1, name: 'Round A', description: 'Description for Round A.' },
-  { id: 2, name: 'Round B', description: 'Description for Round B.' },
-  { id: 3, name: 'Round C', description: 'Description for Round C.' },
-  { id: 4, name: 'Round D', description: 'Description for Round D.' },
-  { id: 5, name: 'Round E', description: 'Description for Round E.' },
-  { id: 6, name: 'Round F', description: 'Description for Round F.' },
-  { id: 7, name: 'Round G', description: 'Description for Round G.' },
+  {
+    id: 1,
+    name: 'Intro Drop',
+    description:
+      "The song starts and a timer begins. After a few seconds, the music mutes—but the timer keeps going! Tap when you think the singer says the first word. Closest guess wins the points. Timing is everything!"
+  },
+  {
+    id: 2,
+    name: 'Movie Match',
+    description:
+      'When the question begins, a song from a movie soundtrack will play for a set amount of time. Your goal: be the first to name the film the song comes from! Points go to the 1st, 2nd, and 3rd fastest players who guess correctly—so listen closely and answer fast!'
+  },
+  {
+    id: 3,
+    name: 'Tune Dash',
+    description:
+      'When the question starts, a random part of a song will play for a set amount of time. Be the first to guess the correct song! Points go to the 1st, 2nd, and 3rd fastest players who answer correctly.'
+  },
+  {
+    id: 4,
+    name: 'Album Gamble',
+    description:
+      "When a question starts, the name and cover of an album will be shown. You'll have a set amount of time to pick a song from the album. If you pick the correct song, you get points. But beware: if someone else picks the same answer as you, both of you lose your points and get zero for that question!"
+  },
+  {
+    id: 5,
+    name: 'Hit Year',
+    description:
+      'A #1 hit plays for a few seconds. Guess the year it topped the charts! Closest player (or players) wins the points.'
+  },
+  {
+    id: 6,
+    name: 'Cover Clash',
+    description:
+      'Hear a cover version of a famous song. Name the original artist for points, and get double points if you also name the song! Points go to the 1st, 2nd, and 3rd fastest correct answers.'
+  },
 ];
 
-function RoundsList({ rounds, selected, onToggle, max, onInfo }) {
-  return (
-    <div className="rounds-list-vertical">
-      {rounds.map((round) => {
-        const isSelected = selected.some(r => r.id === round.id);
-        return (
-          <div
-            key={round.id}
-            className={`round-list-card${isSelected ? ' selected' : ''}${selected.length >= max && !isSelected ? ' disabled' : ''}`}
-            onClick={() => onToggle(round)}
-          >
-            <div className="round-info" onClick={e => { e.stopPropagation(); onInfo(round); }}>
-              <span className="info-icon">i</span>
-            </div>
-            <div className="round-card-name">{round.name}</div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function SelectedRoundsPills({ selected }) {
-  if (selected.length === 0) return null;
-  return (
-    <div className="selected-rounds-pills-row">
-      {selected.map((round, idx) => (
-        <div className="selected-round-pill" key={round.id}>
-          <span className="pill-index">{idx + 1}</span> {round.name}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function RoundInfoModal({ round, onClose }) {
-  if (!round) return null;
-  return (
-    <div className="round-info-modal-bg" onClick={onClose}>
-      <div className="round-info-modal" onClick={e => e.stopPropagation()}>
-        <h3>{round.name}</h3>
-        <p>{round.description}</p>
-        <button onClick={onClose}>Close</button>
-      </div>
-    </div>
-  );
-}
-
 function SelectRoundsPanel({ roundCount, selectedRounds, setSelectedRounds }) {
-  const dummyRounds = [
-    {
-      id: 1,
-      name: 'Intro Drop',
-      description:
-        "The song starts and a timer begins. After a few seconds, the music mutes—but the timer keeps going! Tap when you think the singer says the first word. Closest guess wins the points. Timing is everything!"
-    },
-    {
-      id: 2,
-      name: 'Movie Match',
-      description:
-        'When the question begins, a song from a movie soundtrack will play for a set amount of time. Your goal: be the first to name the film the song comes from! Points go to the 1st, 2nd, and 3rd fastest players who guess correctly—so listen closely and answer fast!'
-    },
-    {
-      id: 3,
-      name: 'Tune Dash',
-      description:
-        'When the question starts, a random part of a song will play for a set amount of time. Be the first to guess the correct song! Points go to the 1st, 2nd, and 3rd fastest players who answer correctly.'
-    },
-    {
-      id: 4,
-      name: 'Album Gamble',
-      description:
-        "When a question starts, the name and cover of an album will be shown. You'll have a set amount of time to pick a song from the album. If you pick the correct song, you get points. But beware: if someone else picks the same answer as you, both of you lose your points and get zero for that question!"
-    },
-    {
-      id: 5,
-      name: 'Hit Year',
-      description:
-        'A #1 hit plays for a few seconds. Guess the year it topped the charts! Closest player (or players) wins the points.'
-    },
-    {
-      id: 6,
-      name: 'Cover Clash',
-      description:
-        'Hear a cover version of a famous song. Name the original artist for points, and get double points if you also name the song! Points go to the 1st, 2nd, and 3rd fastest correct answers.'
-    },
-  ];
   const [currentIdx, setCurrentIdx] = useState(0);
-  const currentRound = dummyRounds[currentIdx];
+  const currentRound = placeholderRounds[currentIdx];
   const isSelected = selectedRounds.some(r => r.id === currentRound.id);
   const maxSelected = selectedRounds.length >= roundCount;
   const [clicked, setClicked] = useState(false);
 
   function handlePrev() {
-    setCurrentIdx((prev) => (prev - 1 + dummyRounds.length) % dummyRounds.length);
+    setCurrentIdx((prev) => (prev - 1 + placeholderRounds.length) % placeholderRounds.length);
   }
   function handleNext() {
-    setCurrentIdx((prev) => (prev + 1) % dummyRounds.length);
+    setCurrentIdx((prev) => (prev + 1) % placeholderRounds.length);
   }
   function handleSelect() {
     if (isSelected) {
@@ -266,147 +194,10 @@ function SelectRoundsPanel({ roundCount, selectedRounds, setSelectedRounds }) {
   );
 }
 
-// --- New RoundSettingsPanel ---
-function RoundSettingsPanel({ selectedRounds, currentIdx, setCurrentIdx, errorAnim }) {
-  if (!selectedRounds.length) return null;
-  const round = selectedRounds[currentIdx];
-  const [settings, setSettings] = useState(() => getDefaultSettings(round.name));
-  const [isDirty, setIsDirty] = useState(false);
-
-  const handleSettingChange = (key, value) => {
-    setSettings(prev => ({ ...prev, [key]: value }));
-    setIsDirty(true);
-  };
-
-  const handleApplySettings = () => {
-    const validatedSettings = validateSettings(round.name, settings);
-    setSettings(validatedSettings);
-    setIsDirty(false);
-    // TODO: Save settings to the round object
-  };
-
-  const formatSettingName = (key) => {
-    return key
-      .replace(/([A-Z])/g, ' $1') // Add space before capital letters
-      .replace(/^./, str => str.toUpperCase()) // Capitalize first letter
-      .trim();
-  };
-
-  const renderSettingInput = (key, value) => {
-    if (typeof value === 'boolean') {
-      return (
-        <div key={key} className="setting-row">
-          <label className="setting-label">{formatSettingName(key)}</label>
-          <div className="setting-toggle">
-            <input
-              type="checkbox"
-              checked={value}
-              onChange={(e) => handleSettingChange(key, e.target.checked)}
-              className="setting-checkbox"
-              id={`setting-${key}`}
-            />
-            <label htmlFor={`setting-${key}`} className="setting-checkbox-label"></label>
-          </div>
-        </div>
-      );
-    } else if (typeof value === 'number') {
-      return (
-        <div key={key} className="setting-row">
-          <label className="setting-label">{formatSettingName(key)}</label>
-          <div className="setting-input-wrapper">
-            <input
-              type="number"
-              value={value}
-              onChange={(e) => handleSettingChange(key, Number(e.target.value))}
-              className="setting-input"
-              min="0"
-            />
-            <span className="setting-unit">sec</span>
-          </div>
-        </div>
-      );
-    } else if (typeof value === 'object') {
-      return (
-        <div key={key} className="setting-group">
-          <h4 className="setting-group-title">{formatSettingName(key)}</h4>
-          {Object.entries(value).map(([subKey, subValue]) => (
-            <div key={`${key}-${subKey}`} className="setting-row nested">
-              <label className="setting-label">{formatSettingName(subKey)}</label>
-              <div className="setting-input-wrapper">
-                <input
-                  type="number"
-                  value={subValue}
-                  onChange={(e) => handleSettingChange(key, { ...value, [subKey]: Number(e.target.value) })}
-                  className="setting-input"
-                  min="0"
-                />
-                <span className="setting-unit">pts</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      );
-    }
-    return null;
-  };
-
-  return (
-    <div className={`round-settings-panel${errorAnim ? ' error-anim' : ''}`}>
-      <div className="settings-header">
-        <button
-          className="round-arrow-btn minimal"
-          onClick={() => setCurrentIdx((currentIdx - 1 + selectedRounds.length) % selectedRounds.length)}
-          aria-label="Previous Round"
-        >
-          <span className="arrow-shape">&#8592;</span>
-        </button>
-        <h2 className="settings-title">
-          {`Round ${currentIdx + 1}: ${round.name}`}
-        </h2>
-        <button
-          className="round-arrow-btn minimal"
-          onClick={() => setCurrentIdx((currentIdx + 1) % selectedRounds.length)}
-          aria-label="Next Round"
-        >
-          <span className="arrow-shape">&#8594;</span>
-        </button>
-      </div>
-      
-      <div className="settings-form">
-        {Object.entries(settings).map(([key, value]) => renderSettingInput(key, value))}
-      </div>
-
-      <div className="settings-actions">
-        <button 
-          className={`quiz-action-btn${isDirty ? ' active' : ''}`}
-          onClick={handleApplySettings}
-          disabled={!isDirty}
-        >
-          Save Settings
-        </button>
-      </div>
-    </div>
-  );
-}
-
 function QuizBottomPanel({ openPanel, onClose, roundCount, selectedRounds, setSelectedRounds }) {
-  const [settingsIdx, setSettingsIdx] = useState(0);
-  const [settingsErrorAnim, setSettingsErrorAnim] = useState(false);
-  useEffect(() => {
-    if (settingsIdx >= selectedRounds.length) setSettingsIdx(0);
-  }, [selectedRounds.length]);
   let content = null;
   if (!openPanel) return null;
   if (openPanel === 'select') content = <SelectRoundsPanel roundCount={roundCount} selectedRounds={selectedRounds} setSelectedRounds={setSelectedRounds} />;
-  if (openPanel === 'edit') {
-    if (!selectedRounds.length) {
-      // Error animation if no rounds selected
-      setSettingsErrorAnim(true);
-      setTimeout(() => setSettingsErrorAnim(false), 500);
-    }
-    content = <RoundSettingsPanel selectedRounds={selectedRounds} currentIdx={settingsIdx} setCurrentIdx={setSettingsIdx} errorAnim={settingsErrorAnim} />;
-  }
-  if (openPanel === 'settings') content = <div className="panel-content">Game Settings Panel</div>;
   return (
     <div className={`quiz-bottom-panel embedded show`}>
       <button className="panel-close-btn" onClick={onClose} title="Close">×</button>
@@ -415,12 +206,9 @@ function QuizBottomPanel({ openPanel, onClose, roundCount, selectedRounds, setSe
   );
 }
 
-function QuizActionButtons({ openPanel, setOpenPanel, selectedRounds, setErrorAnim }) {
-  const [errorBtn, setErrorBtn] = useState(false);
+function QuizActionButtons({ openPanel, setOpenPanel, selectedRounds }) {
   function handleClick(panel) {
     if (panel === 'edit' && selectedRounds.length === 0) {
-      setErrorBtn(true);
-      setTimeout(() => setErrorBtn(false), 500);
       return;
     }
     setOpenPanel(openPanel === panel ? null : panel);
@@ -455,100 +243,342 @@ function SelectedRoundsShowcase({ selectedRounds, setSelectedRounds }) {
   );
 }
 
-function SettingsPage({ onBack, selectedRounds = [] }) {
-  const [tab, setTab] = useState('round'); // 'round' or 'game'
-  const [activeRoundIdx, setActiveRoundIdx] = useState(0);
+function SettingsPage({ onBack, selectedRounds }) {
+  const [activeTab, setActiveTab] = useState('rounds'); // 'rounds' or 'game'
+  const [currentRoundIdx, setCurrentRoundIdx] = useState(0);
+  // Set default values for the first round
+  const defaultSettings = {
+    randomDuration: true,
+    muteDuration: 10,
+    points: 10,
+    timeBetween: 15,
+    numQuestions: 5,
+  };
+  const [roundSettings, setRoundSettings] = useState({ 0: { ...defaultSettings } });
+  const firstRound = selectedRounds && selectedRounds.length > 0 ? selectedRounds[currentRoundIdx] : null;
 
-  // Placeholder state for settings
-  const [gameSettings, setGameSettings] = useState({});
-  const [roundSettings, setRoundSettings] = useState({});
+  // Local state for display values of number inputs
+  const [inputValues, setInputValues] = useState({ ...defaultSettings });
 
-  function handleSave() {
-    // TODO: Save logic
-    alert('Settings saved!');
-  }
-  function handleReset() {
-    // TODO: Reset logic
-    alert('Settings reset to defaults!');
-  }
+  // Tooltip state: which (if any) is open by click
+  const [openTooltip, setOpenTooltip] = useState(null);
+  // Track if the tooltip is open by click (sticky) or just by hover
+  const [hoveredTooltip, setHoveredTooltip] = useState(null);
+  useEffect(() => {
+    const handleClickOutside = () => setOpenTooltip(null);
+    if (openTooltip !== null) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [openTooltip]);
 
-  // Carousel navigation
-  function goLeft() {
-    setActiveRoundIdx((prev) => (prev - 1 + selectedRounds.length) % selectedRounds.length);
-  }
-  function goRight() {
-    setActiveRoundIdx((prev) => (prev + 1) % selectedRounds.length);
-  }
+  // Helper to determine if a tooltip should be shown
+  const isTooltipOpen = (key) => openTooltip === key || hoveredTooltip === key;
+
+  // Sync inputValues with roundSettings when round changes
+  useEffect(() => {
+    const currentSettings = roundSettings[currentRoundIdx] || defaultSettings;
+    setInputValues({
+      muteDuration: currentSettings.muteDuration?.toString() ?? '',
+      points: currentSettings.points?.toString() ?? '',
+      timeBetween: currentSettings.timeBetween?.toString() ?? '',
+      numQuestions: currentSettings.numQuestions?.toString() ?? '',
+    });
+  }, [currentRoundIdx, roundSettings]);
+
+  const handlePrev = () => setCurrentRoundIdx(idx => Math.max(0, idx - 1));
+  const handleNext = () => setCurrentRoundIdx(idx => Math.min(selectedRounds.length - 1, idx + 1));
+
+  const handleSettingChange = (setting, value) => {
+    setRoundSettings(prev => ({
+      ...prev,
+      [currentRoundIdx]: {
+        ...prev[currentRoundIdx],
+        [setting]: value
+      }
+    }));
+  };
+
+  // Handle input change for number fields
+  const handleInputChange = (field, value) => {
+    setInputValues(prev => ({ ...prev, [field]: value }));
+    if (value !== '' && !isNaN(Number(value))) {
+      handleSettingChange(field, parseInt(value));
+    }
+  };
+
+  // On blur, restore last valid value if input is empty or invalid
+  const handleInputBlur = (field, fallbackValue) => {
+    if (inputValues[field] === '' || isNaN(Number(inputValues[field]))) {
+      setInputValues(prev => ({ ...prev, [field]: fallbackValue?.toString() ?? '' }));
+    }
+  };
+
+  const renderRoundSettings = () => {
+    if (!firstRound) return null;
+    const currentSettings = roundSettings[currentRoundIdx] || {};
+    if (firstRound.id === 1) {
+      // Intro Drop settings
+      return (
+        <div className="settings-modern-group">
+          <div className="settings-modern-row" style={{ position: 'relative' }}>
+            <span style={{ flex: 1, textAlign: 'left', display: 'flex', alignItems: 'center' }}>
+              Random Duration
+              <span className="settings-info-icon-wrapper">
+                <span
+                  className="settings-info-icon"
+                  onMouseEnter={() => setHoveredTooltip('randomDuration')}
+                  onMouseLeave={() => setHoveredTooltip(null)}
+                >
+                  <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10" stroke="#60efff" strokeWidth="2.5" fill="none"/>
+                    <rect x="11" y="10" width="2" height="6" rx="1" fill="#60efff"/>
+                    <circle cx="12" cy="7.2" r="1.2" fill="#60efff"/>
+                  </svg>
+                </span>
+                <span className={`settings-info-tooltip ${hoveredTooltip === 'randomDuration' ? 'visible' : ''}`}>
+                  If enabled, the mute duration will be random each round.
+                </span>
+              </span>
+            </span>
+            <span className="settings-modern-switch">
+              <input
+                type="checkbox"
+                id="randomDuration"
+                checked={currentSettings.randomDuration || false}
+                readOnly
+                tabIndex={-1}
+                style={{ pointerEvents: 'none' }}
+              />
+              <span
+                className="settings-modern-slider"
+                onClick={() => handleSettingChange('randomDuration', !currentSettings.randomDuration)}
+                role="checkbox"
+                aria-checked={currentSettings.randomDuration || false}
+                aria-label="Toggle Random Duration"
+              ></span>
+            </span>
+          </div>
+          {!currentSettings.randomDuration && (
+            <div className="settings-modern-row" style={{ position: 'relative' }}>
+              <span style={{ flex: 1, textAlign: 'left', display: 'flex', alignItems: 'center' }}>
+                Mute Duration
+                <span className="settings-info-icon-wrapper">
+                  <span
+                    className="settings-info-icon"
+                    onMouseEnter={() => setHoveredTooltip('muteDuration')}
+                    onMouseLeave={() => setHoveredTooltip(null)}
+                  >
+                    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+                      <circle cx="12" cy="12" r="10" stroke="#60efff" strokeWidth="2.5" fill="none"/>
+                      <rect x="11" y="10" width="2" height="6" rx="1" fill="#60efff"/>
+                      <circle cx="12" cy="7.2" r="1.2" fill="#60efff"/>
+                    </svg>
+                  </span>
+                  <span className={`settings-info-tooltip ${hoveredTooltip === 'muteDuration' ? 'visible' : ''}`}>
+                    How many seconds until the music is muted for each question.
+                  </span>
+                </span>
+              </span>
+              <input
+                type="number"
+                min="1"
+                max="30"
+                className="settings-modern-input"
+                id="muteDuration"
+                value={inputValues.muteDuration}
+                onChange={e => handleInputChange('muteDuration', e.target.value)}
+                onBlur={() => handleInputBlur('muteDuration', currentSettings.muteDuration)}
+                autoComplete="off"
+              />
+            </div>
+          )}
+          <div className="settings-modern-row" style={{ position: 'relative' }}>
+            <span style={{ flex: 1, textAlign: 'left', display: 'flex', alignItems: 'center' }}>
+              Winners Points
+              <span className="settings-info-icon-wrapper">
+                <span
+                  className="settings-info-icon"
+                  onMouseEnter={() => setHoveredTooltip('winnersPoints')}
+                  onMouseLeave={() => setHoveredTooltip(null)}
+                >
+                  <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10" stroke="#60efff" strokeWidth="2.5" fill="none"/>
+                    <rect x="11" y="10" width="2" height="6" rx="1" fill="#60efff"/>
+                    <circle cx="12" cy="7.2" r="1.2" fill="#60efff"/>
+                  </svg>
+                </span>
+                <span className={`settings-info-tooltip ${hoveredTooltip === 'winnersPoints' ? 'visible' : ''}`}>
+                  How many points are awarded to the winner of each round.
+                </span>
+              </span>
+            </span>
+            <input
+              type="number"
+              min="1"
+              max="20"
+              className="settings-modern-input"
+              id="winnersPoints"
+              value={inputValues.points}
+              onChange={e => handleInputChange('points', e.target.value)}
+              onBlur={() => handleInputBlur('points', currentSettings.points)}
+              autoComplete="off"
+            />
+          </div>
+          <div className="settings-modern-row" style={{ position: 'relative' }}>
+            <span style={{ flex: 1, textAlign: 'left', display: 'flex', alignItems: 'center' }}>
+              Break Time
+              <span className="settings-info-icon-wrapper">
+                <span
+                  className="settings-info-icon"
+                  onMouseEnter={() => setHoveredTooltip('breakTime')}
+                  onMouseLeave={() => setHoveredTooltip(null)}
+                >
+                  <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10" stroke="#60efff" strokeWidth="2.5" fill="none"/>
+                    <rect x="11" y="10" width="2" height="6" rx="1" fill="#60efff"/>
+                    <circle cx="12" cy="7.2" r="1.2" fill="#60efff"/>
+                  </svg>
+                </span>
+                <span className={`settings-info-tooltip ${hoveredTooltip === 'breakTime' ? 'visible' : ''}`}>
+                  How many seconds between each question.
+                </span>
+              </span>
+            </span>
+            <input
+              type="number"
+              min="5"
+              max="60"
+              className="settings-modern-input"
+              id="breakTime"
+              value={inputValues.timeBetween}
+              onChange={e => handleInputChange('timeBetween', e.target.value)}
+              onBlur={() => handleInputBlur('timeBetween', currentSettings.timeBetween)}
+              autoComplete="off"
+            />
+          </div>
+          <div className="settings-modern-row" style={{ position: 'relative' }}>
+            <span style={{ flex: 1, textAlign: 'left', display: 'flex', alignItems: 'center' }}>
+              Questions
+              <span className="settings-info-icon-wrapper">
+                <span
+                  className="settings-info-icon"
+                  onMouseEnter={() => setHoveredTooltip('questions')}
+                  onMouseLeave={() => setHoveredTooltip(null)}
+                >
+                  <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10" stroke="#60efff" strokeWidth="2.5" fill="none"/>
+                    <rect x="11" y="10" width="2" height="6" rx="1" fill="#60efff"/>
+                    <circle cx="12" cy="7.2" r="1.2" fill="#60efff"/>
+                  </svg>
+                </span>
+                <span className={`settings-info-tooltip ${hoveredTooltip === 'questions' ? 'visible' : ''}`}>
+                  How many questions will be in this round.
+                </span>
+              </span>
+            </span>
+            <input
+              type="number"
+              min="1"
+              max="50"
+              className="settings-modern-input"
+              id="questions"
+              value={inputValues.numQuestions}
+              onChange={e => handleInputChange('numQuestions', e.target.value)}
+              onBlur={() => handleInputBlur('numQuestions', currentSettings.numQuestions)}
+              autoComplete="off"
+            />
+          </div>
+        </div>
+      );
+    }
+    // Add more round types here as needed
+    return null;
+  };
 
   return (
     <div className="quiz-creation-screen" style={{ minHeight: '100vh', overflowY: 'auto', paddingTop: 0 }}>
-      {/* Move settings tabs to the very top with minimal margin */}
-      <div className="settings-tabs-row compact" style={{ marginTop: '0.2rem', marginBottom: '0.7rem', zIndex: 2, position: 'relative' }}>
-        <button
-          className={`settings-tab${tab === 'round' ? ' active' : ''}`}
-          onClick={() => setTab('round')}
-        >
-          Round Settings
-        </button>
-        <button
-          className={`settings-tab${tab === 'game' ? ' active' : ''}`}
-          onClick={() => setTab('game')}
-        >
-          Game Settings
-        </button>
-      </div>
-      {/* Back button just below the pills, but with less margin */}
       <button className="back-btn" onClick={onBack} style={{ marginBottom: '0.7rem', top: 12, left: 18 }}>
         <span className="back-arrow" aria-hidden="true">&#8592;</span> Back
       </button>
       <div className="quiz-creation-center-area" style={{ flex: 1, minHeight: 0, overflow: 'visible', marginTop: 0 }}>
-        <div className="settings-tab-content" style={{ position: 'relative', overflow: 'visible', marginTop: 0 }}>
-          {tab === 'round' && selectedRounds.length > 0 && (
-            <>
-              <div className="round-carousel-bar" style={{ marginTop: 0, marginBottom: '1rem' }}>
-                <button className="carousel-arrow" onClick={goLeft} aria-label="Previous Round">&#8592;</button>
-                <div className="round-carousel-steps">
-                  {selectedRounds.map((round, idx) => (
-                    <button
-                      key={round.id}
-                      className={`round-carousel-step${activeRoundIdx === idx ? ' active' : ''}`}
-                      onClick={() => setActiveRoundIdx(idx)}
-                    >
-                      {`Round ${idx + 1}: ${round.name}`}
-                    </button>
-                  ))}
+        <div className="settings-tabs">
+          <button 
+            className={`settings-tab-btn${activeTab === 'rounds' ? ' active' : ''}`}
+            onClick={() => setActiveTab('rounds')}
+          >
+            Round Settings
+          </button>
+          <button 
+            className={`settings-tab-btn${activeTab === 'game' ? ' active' : ''}`}
+            onClick={() => setActiveTab('game')}
+          >
+            Game Settings
+          </button>
+        </div>
+        <div className="settings-content">
+          {activeTab === 'rounds' && (
+            <div className={`round-settings active`}>
+              {firstRound && (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginBottom: '1.6rem',
+                }}>
+                  <button
+                    onClick={handlePrev}
+                    style={{
+                      visibility: currentRoundIdx > 0 ? 'visible' : 'hidden',
+                      background: 'none',
+                      border: 'none',
+                      color: '#60efff',
+                      fontSize: '2rem',
+                      cursor: currentRoundIdx > 0 ? 'pointer' : 'default',
+                      padding: '0 0.7rem',
+                      transition: 'color 0.18s, transform 0.18s',
+                    }}
+                    aria-label="Previous Round"
+                    disabled={currentRoundIdx === 0}
+                  >
+                    &#8592;
+                  </button>
+                  <div style={{
+                    color: '#00ff87',
+                    fontSize: '1.5rem',
+                    fontWeight: 900,
+                    letterSpacing: '0.01em',
+                    textShadow: '0 2px 8px #00ff8766',
+                    textAlign: 'center',
+                    flex: 1,
+                  }}>
+                    Round {currentRoundIdx + 1}: {firstRound.name}
+                  </div>
+                  <button
+                    onClick={handleNext}
+                    style={{
+                      visibility: currentRoundIdx < selectedRounds.length - 1 ? 'visible' : 'hidden',
+                      background: 'none',
+                      border: 'none',
+                      color: '#60efff',
+                      fontSize: '2rem',
+                      cursor: currentRoundIdx < selectedRounds.length - 1 ? 'pointer' : 'default',
+                      padding: '0 0.7rem',
+                      transition: 'color 0.18s, transform 0.18s',
+                    }}
+                    aria-label="Next Round"
+                    disabled={currentRoundIdx === selectedRounds.length - 1}
+                  >
+                    &#8594;
+                  </button>
                 </div>
-                <button className="carousel-arrow" onClick={goRight} aria-label="Next Round">&#8594;</button>
-              </div>
-              <div className="round-carousel-card" style={{ position: 'relative', maxHeight: 'calc(100vh - 360px)', display: 'flex', flexDirection: 'column', marginTop: 0 }}>
-                <div className="round-carousel-card-header">
-                  <span className="round-carousel-card-title">{`Round ${activeRoundIdx + 1}: ${selectedRounds[activeRoundIdx].name}`}</span>
-                </div>
-                <div className="round-carousel-card-body no-scrollbar" style={{ flex: '1 1 auto', minHeight: 0, overflowY: 'auto', borderRadius: '0 0 18px 18px', position: 'relative' }}>
-                  {selectedRounds[activeRoundIdx].name === 'Intro Drop' ? (
-                    <IntroDropRound hideSaveButton />
-                  ) : (
-                    <div style={{color: '#60efff', margin: '1.2rem 0'}}>Settings for {selectedRounds[activeRoundIdx].name} go here.</div>
-                  )}
-                </div>
-              </div>
-            </>
-          )}
-          {tab === 'game' && (
-            <div className="game-settings-card">
-              <div className="game-settings-card-header">
-                <span className="game-settings-card-title">Game Settings</span>
-              </div>
-              <div className="game-settings-card-body">
-                <div style={{color: '#60efff', margin: '1.2rem 0'}}>Game settings form goes here.</div>
-              </div>
+              )}
+              {renderRoundSettings()}
             </div>
           )}
-        </div>
-        {/* Save/Restore buttons always visible below the tab content */}
-        <div className="settings-actions-row" style={{ marginTop: '0.3rem', marginBottom: '2rem' }}>
-          <button className="quiz-action-btn" onClick={handleSave}>Save Changes</button>
-          <button className="quiz-action-btn" style={{marginLeft: '1.2rem', background: '#222', color: '#60efff'}} onClick={handleReset}>Restore to Default</button>
+          {activeTab === 'game' && (
+            <div className={`game-settings active`}></div>
+          )}
         </div>
       </div>
     </div>
@@ -594,8 +624,8 @@ function QuizCreationScreen({ onBack }) {
         <span className="back-arrow" aria-hidden="true">&#8592;</span> Back
       </button>
       <div className="quiz-creation-center-area">
-        <RoundCountSelector value={roundCount} onChange={handleRoundCountChange} selectedRounds={selectedRounds} errorAnim={errorAnim} />
-        <QuizActionButtons openPanel={openPanel} setOpenPanel={setOpenPanel} selectedRounds={selectedRounds} setErrorAnim={setErrorAnim} />
+        <RoundCountSelector value={roundCount} onChange={handleRoundCountChange} errorAnim={errorAnim} />
+        <QuizActionButtons openPanel={openPanel} setOpenPanel={setOpenPanel} selectedRounds={selectedRounds} />
         {openPanel === null && (
           <SelectedRoundsShowcase selectedRounds={selectedRounds} setSelectedRounds={setSelectedRounds} />
         )}
