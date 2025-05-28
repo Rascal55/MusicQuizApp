@@ -1367,11 +1367,11 @@ function SettingsPage({ onBack, selectedRounds }) {
 
  return (
    <>
-     <div className="quiz-creation-screen" style={{ minHeight: '100vh', overflowY: 'auto', paddingTop: 0, paddingBottom: '120px' }}>
+     <div className="quiz-creation-screen" style={{ minHeight: '100vh', overflowY: 'visible', paddingTop: 0, paddingBottom: '120px' }}>
      <button className="back-btn" onClick={onBack}>
         <span className="back-arrow" aria-hidden="true">&#8592;</span> Back
       </button>
-       <div className="quiz-creation-center-area" style={{ flex: 1, minHeight: 0, overflow: 'visible', marginTop: '-3rem' }}>
+       <div className="quiz-creation-center-area" style={{ flex: 1, minHeight: 0, overflow: 'visible', marginTop: '-3.5rem' }}>
          <div className="settings-tabs">
            <button 
              className={`settings-tab-btn${activeTab === 'rounds' ? ' active' : ''}`}
@@ -1733,7 +1733,7 @@ function QuizCreationScreen({ onBack }) {
       <button className="back-btn" onClick={onBack}>
         <span className="back-arrow" aria-hidden="true">&#8592;</span> Back
       </button>
-      <div className="quiz-creation-center-area">
+      <div className="quiz-creation-center-area"> 
         <RoundCountSelector value={roundCount} onChange={handleRoundCountChange} errorAnim={errorAnim} />
         <QuizActionButtons openPanel={openPanel} setOpenPanel={setOpenPanel} selectedRounds={selectedRounds} />
         {openPanel === null && (
