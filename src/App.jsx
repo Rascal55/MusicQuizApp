@@ -327,6 +327,7 @@ function SettingsPage({ onBack, selectedRounds }) {
     musicVolumn : 100,
     liveLeaderboard: true,
     maxPlayers: 8,
+    audioOutput: 'host',
   };
 
   // Saved settings (persistent until page refresh/back)
@@ -578,6 +579,7 @@ function SettingsPage({ onBack, selectedRounds }) {
     } else if (activeTab === 'game') {
       const newDefaults = { ...defaultGameSettings };
       newDefaults.joinCode = workingGameSettings.joinCode;
+      newDefaults.audioOutput = 'host';
       setWorkingGameSettings(newDefaults);
       setSavedGameSettings(newDefaults);
     }
@@ -1663,8 +1665,109 @@ function SettingsPage({ onBack, selectedRounds }) {
                     }}
                     autoComplete="off"
                   />
-                </div>        
+                </div> 
+                <div className="settings-modern-row" style={{ position: 'relative' }}>
+                  <span style={{ flex: 1, textAlign: 'left', display: 'flex', alignItems: 'center' }}>
+                    Audio Sync Mode
+                    <span className="settings-info-icon-wrapper">
+                      <span
+                        ref={el => iconRefs.current['audioOutput'] = el}
+                        className="settings-info-icon"
+                        onMouseEnter={() => showTooltip('audioOutput', 'Choose where the music plays: Host device only (for in-person games), Player devices only (for remote games), or both Host and Player devices (for hybrid games).')}
+                        onMouseLeave={hideTooltip}
+                      >
+                        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+                          <circle cx="12" cy="12" r="10" stroke="#60efff" strokeWidth="2.5" fill="none"/>
+                          <rect x="11" y="10" width="2" height="6" rx="1" fill="#60efff"/>
+                          <circle cx="12" cy="7.2" r="1.2" fill="#60efff"/>
+                        </svg>
+                      </span>
+                    </span>
+                  </span>
+                  <div style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '0.5rem',
+                    background: 'rgba(255,255,255,0.08)',
+                    borderRadius: '999px',
+                    padding: '0.3rem',
+                    border: '1.5px solid #60efff44'
+                  }}>
+                    {['host', 'players', 'both'].map((option) => (
+                      <button
+                        key={option}
+                        onClick={() => handleGameSettingChange('audioOutput', option)}
+                        style={{
+                          background: workingGameSettings.audioOutput === option 
+                            ? 'linear-gradient(45deg, #00ff87, #60efff)' 
+                            : 'transparent',
+                          color: workingGameSettings.audioOutput === option ? '#181e2a' : '#fff',
+                          border: 'none',
+                          borderRadius: '999px',
+                          padding: '0.5rem 1rem',
+                          fontSize: '0.95rem',
+                          fontWeight: '600',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease',
+                          minWidth: '70px',
+                          textAlign: 'center'
+                        }}
+                        onMouseEnter={e => {
+                          if (workingGameSettings.audioOutput !== option) {
+                            e.target.style.background = 'rgba(96,239,255,0.1)';
+                          }
+                        }}
+                        onMouseLeave={e => {
+                          if (workingGameSettings.audioOutput !== option) {
+                            e.target.style.background = 'transparent';
+                          }
+                        }}
+                      >
+                        {option === 'host' ? '🎧 Host' : 
+                        option === 'players' ? '📱 Players' : 
+                        '🔊 Both'}
+                      </button>
+                    ))}
+                  </div>
+                </div>     
                </div>
+               <div style={{
+                  width: '100%',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  marginTop: '1.2rem',
+                  marginBottom: '-1.2rem'
+                }}>
+                  <button
+                    className="settings-save-btn"  // Use the SAME class as Save Settings button
+                    onClick={() => {
+                      // TODO: Add start game functionality here
+                      console.log('Starting game with settings:', {
+                        gameSettings: workingGameSettings,
+                        roundSettings: savedRoundSettings,
+                        selectedRounds: selectedRounds
+                      });
+                    }}
+                    disabled={hasUnsavedChanges}
+                    style={{
+                      background: hasUnsavedChanges 
+                        ? 'rgba(255, 107, 107, 0.3)' 
+                        : 'linear-gradient(135deg, #00ff87 0%, #60efff 50%, #ff6b9d 100%)',
+                      color: hasUnsavedChanges ? '#ff6b6b' : '#fff',
+                      border: hasUnsavedChanges ? '2px solid #ff6b6b' : 'none',
+                      opacity: hasUnsavedChanges ? 0.6 : 1,
+                      cursor: hasUnsavedChanges ? 'not-allowed' : 'pointer',
+                      boxShadow: hasUnsavedChanges 
+                        ? '0 4px 16px rgba(255, 107, 107, 0.2)' 
+                        : '0 4px 16px rgba(0,255,135,0.2)',
+                      padding: '1.1rem 2.2rem',
+                      fontSize: '1.15rem'
+                    }}
+                  >
+                    {hasUnsavedChanges ? '⚠️ Save Settings First' : '🚀 Start Game'}
+                  </button>
+                </div>
              </div>
            )}
          </div>
