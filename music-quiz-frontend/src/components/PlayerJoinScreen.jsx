@@ -140,25 +140,48 @@ function PlayerJoinScreen({ onJoinGame, onBack }) {
                       minWidth: '3rem',
                       height: '3rem',
                       marginRight: index < 5 ? '0.5rem' : '0',
-                      borderBottom: '3px solid',
-                      borderColor: joinCode[index] ? '#00ff87' : '#60efff33',
-                      color: joinCode[index] ? '#fff' : '#666',
-                      fontSize: '2.5rem',
-                      fontWeight: '700',
-                      transition: 'all 0.3s ease',
                       position: 'relative'
                     }}>
-                      {joinCode[index] || '_'}
+                      {/* Character display */}
+                      <span style={{
+                        fontSize: '2.5rem',
+                        fontWeight: '700',
+                        color: joinCode[index] ? '#fff' : 'transparent',
+                        position: 'absolute',
+                        top: '50%',
+                        left: '0.75rem',
+                        right: '0',
+                        transform: 'translateY(-50%)',
+                        zIndex: 2,
+                        textAlign: 'center'
+                      }}>
+                        {joinCode[index] || '_'}
+                      </span>
+                      
+                      {/* Bottom line */}
+                      <div style={{
+                        position: 'absolute',
+                        bottom: '0',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        width: '2.5rem',
+                        height: '3px',
+                        background: joinCode[index] ? '#00ff87' : '#60efff33',
+                        transition: 'background 0.3s ease'
+                      }} />
+                      
+                      {/* Cursor */}
                       {isFocused && index === joinCode.length && joinCode.length < 6 && (
                         <span style={{
                           position: 'absolute',
-                          top: '50%',
+                          top: '45%',
                           left: '50%',
                           transform: 'translate(-50%, -50%)',
                           width: '2px',
                           height: '2.5rem',
                           background: '#60efff',
-                          animation: 'blink 1s infinite'
+                          animation: 'blink 1s infinite',
+                          zIndex: 3
                         }} />
                       )}
                     </span>
