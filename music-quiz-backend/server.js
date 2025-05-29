@@ -181,14 +181,148 @@ app.delete('/api/game/:gameId', (req, res) => {
     }
   }, 10 * 60 * 1000); // Run every 10 minutes
 
-// Socket.IO connection handling
+// Socket.IO connection handling with player management
 io.on('connection', (socket) => {
-  console.log('🔌 New client connected:', socket.id);
-  
-  socket.on('disconnect', () => {
-    console.log('🔌 Client disconnected:', socket.id);
+    console.log('🔌 New client connected:', socket.id);
+    
+    // Host creates/joins game room
+    socket.on('host-join-game', (data) => {
+      const { gameId } = data;
+      console.log(`🎮 Host joining game room: ${gameId}`);
+      
+      socket.join(gameId);
+      socket.gameId = gameId;
+      socket.isHost = true;
+      
+      // Update game with host socket ID
+      const game = activeGames.get(gameId);
+      if (game) {
+        game.hostSocketId = socket.id;
+        console.log(`✅ Host connected to game: ${gameId}`);
+      }
+    });
+    
+    // Player joins game
+    socket.on('player-join-game', (data) => {
+      const { gameId, playerName } = data;
+      console.log(`👤 Player "${playerName}" joining game: ${gameId}`);
+      
+      const game = activeGames.get(gameId);
+      if (!game) {
+        socket.emit('join-error', { message: 'Game not found' });
+        return;
+      }
+      
+      // Check if game is full
+      if (game.players.length >= game.gameSettings.maxPlayers) {
+        socket.emit('join-error', { message: 'Game is full' });
+        return;
+      }
+      
+      // Check for duplicate names
+      const nameExists = game.players.some(p => p.name.toLowerCase() === playerName.toLowerCase());
+      if (nameExists) {
+        socket.emit('join-error', { message: 'Name already taken' });
+        return;
+      }
+      
+      // Add player to game
+      const player = {
+        id: socket.id,
+        name: playerName,
+        joinedAt: Date.now(),
+        score: 0,
+        isReady: true
+      };
+      
+      game.players.push(player);
+      
+      // Join socket room
+      socket.join(gameId);
+      socket.gameId = gameId;
+      socket.playerName = playerName;
+      socket.isHost = false;
+      
+      console.log(`✅ Player "${playerName}" joined game ${gameId}. Players: ${game.players.length}/${game.gameSettings.maxPlayers}`);
+      
+      // Notify player they joined successfully
+      socket.emit('join-success', {
+        gameId: gameId,
+        playerName: playerName,
+        playerId: socket.id
+      });
+      
+      // Notify all clients in the game about updated player list
+      io.to(gameId).emit('players-updated', {
+        players: game.players,
+        playerCount: game.players.length
+      });
+    });
+    
+    // Player disconnection
+    socket.on('disconnect', () => {
+      console.log('🔌 Client disconnected:', socket.id);
+      
+      if (socket.gameId) {
+        const game = activeGames.get(socket.gameId);
+        if (game) {
+          if (socket.isHost) {
+            // Host disconnected - handle gracefully
+            console.log(`🎮 Host disconnected from game: ${socket.gameId}`);
+            game.hostSocketId = null;
+          } else if (socket.playerName) {
+            // Player disconnected - remove from game
+            const playerIndex = game.players.findIndex(p => p.id === socket.id);
+            if (playerIndex !== -1) {
+              game.players.splice(playerIndex, 1);
+              console.log(`👤 Player "${socket.playerName}" left game ${socket.gameId}. Players: ${game.players.length}/${game.gameSettings.maxPlayers}`);
+              
+              // Notify remaining players
+              io.to(socket.gameId).emit('players-updated', {
+                players: game.players,
+                playerCount: game.players.length
+              });
+            }
+          }
+        }
+      }
+    });
+    
+    // Game start (host only)
+    socket.on('start-game', (data) => {
+      if (!socket.isHost) {
+        socket.emit('error', { message: 'Only host can start game' });
+        return;
+      }
+      
+      const game = activeGames.get(socket.gameId);
+      if (!game) {
+        socket.emit('error', { message: 'Game not found' });
+        return;
+      }
+      
+      if (game.players.length < 2) {
+        socket.emit('error', { message: 'Need at least 2 players to start' });
+        return;
+      }
+      
+      game.status = 'starting';
+      console.log(`🚀 Game ${socket.gameId} starting with ${game.players.length} players`);
+      
+      // Notify all players game is starting
+      io.to(socket.gameId).emit('game-starting', {
+        countdown: 3 // 3 second countdown
+      });
+      
+      // Start countdown
+      setTimeout(() => {
+        game.status = 'active';
+        io.to(socket.gameId).emit('game-started', {
+          message: 'Game has started!'
+        });
+      }, 3000);
+    });
   });
-});
 
 // Start server
 const PORT = process.env.PORT || 3001;
