@@ -1878,7 +1878,8 @@ function SettingsPage({ onBack, selectedRounds, onGameCreated }) {
 function GameLobby({ gameData, onBack, onStartGame, socket }) {
   const [players, setPlayers] = useState([]);
   const [gameStatus, setGameStatus] = useState('lobby');
-  const [scrollPosition, setScrollPosition] = useState(0);
+  const [visiblePlayers, setVisiblePlayers] = useState([]);
+  const [isRotating, setIsRotating] = useState(false);
 
   // Socket.IO event listeners
   useEffect(() => {
@@ -1920,6 +1921,38 @@ function GameLobby({ gameData, onBack, onStartGame, socket }) {
     };
   }, [socket, gameData, onStartGame]);
 
+  // Update visible players when players change
+  useEffect(() => {
+    if (players.length <= 6) {
+      setVisiblePlayers(players);
+    } else {
+      // If we have more than 6, show newest player immediately and fill rest randomly
+      const newestPlayer = players[players.length - 1];
+      const otherPlayers = players.slice(0, players.length - 1);
+      const shuffled = [...otherPlayers].sort(() => Math.random() - 0.5);
+      const selected = [newestPlayer, ...shuffled.slice(0, 5)];
+      setVisiblePlayers(selected);
+    }
+  }, [players]);
+
+  // Auto-rotation effect for 7+ players
+  useEffect(() => {
+    if (players.length <= 6) return;
+  
+    const rotateInterval = setInterval(() => {
+      setIsRotating(true);
+      
+      // Longer delay for smoother effect
+      setTimeout(() => {
+        const shuffled = [...players].sort(() => Math.random() - 0.5);
+        setVisiblePlayers(shuffled.slice(0, 6));
+        setIsRotating(false);
+      }, 600); // Increased from 300ms
+    }, 5000); // Increased from 3500ms to 5 seconds
+  
+    return () => clearInterval(rotateInterval);
+  }, [players]);
+
   // Handle start game
   const handleStartGame = () => {
     if (players.length < 2) return;
@@ -1927,20 +1960,6 @@ function GameLobby({ gameData, onBack, onStartGame, socket }) {
     console.log('🚀 Host starting game...');
     socket.emit('start-game', { gameId: gameData.joinCode });
   };
-
-  // Auto-scroll effect when more than 6 players
-  useEffect(() => {
-    if (players.length <= 6) return;
-
-    const interval = setInterval(() => {
-      setScrollPosition(prev => {
-        const maxScroll = (players.length - 6) * 260; // Card width + gap
-        return prev >= maxScroll ? 0 : prev + 260;
-      });
-    }, 2500); // Change every 2.5 seconds
-
-    return () => clearInterval(interval);
-  }, [players.length]);
 
   return (
     <div className="quiz-creation-screen" style={{ overflowY: 'visible' }}>
@@ -1991,13 +2010,13 @@ function GameLobby({ gameData, onBack, onStartGame, socket }) {
         <div style={{
           background: 'rgba(24, 30, 42, 0.95)',
           borderRadius: '24px',
-          padding: '1rem 2.5rem',
+          padding: '1rem 2rem',
           minWidth: '750px',
           maxWidth: '750px',
           margin: '-1rem auto 0.125rem auto',
           border: '1.5px solid #60efff22',
           boxShadow: '0 8px 32px rgba(0,255,135,0.10)',
-          minHeight: '350px',
+          minHeight: '220px',
           overflow: 'hidden'
         }}>
           <div style={{
@@ -2005,7 +2024,7 @@ function GameLobby({ gameData, onBack, onStartGame, socket }) {
             fontWeight: '700',
             color: '#60efff',
             textAlign: 'center',
-            marginBottom: '2rem'
+            marginBottom: '1.25rem'
           }}>
             Players ({players.length}/{gameData.gameSettings.maxPlayers})
           </div>
@@ -2015,242 +2034,158 @@ function GameLobby({ gameData, onBack, onStartGame, socket }) {
               textAlign: 'center',
               color: '#a0a0a0',
               fontSize: '1.3rem',
-              padding: '4rem 2rem',
+              padding: '3.75rem 2rem',
               fontStyle: 'italic'
             }}>
               Waiting for players to join...
             </div>
-          ) : players.length <= 6 ? (
-            // Normal 3x2 grid for 6 or fewer players
+          ) : (
+            // Kahoot-style rotating grid - always shows exactly 6 slots
             <div style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(3, 1fr)',
-              gap: '1.5rem',
-              maxWidth: '650px',
-              margin: '0 auto'
+              gridTemplateRows: 'repeat(2, 1fr)',
+              gap: '1rem',
+              maxWidth: '600px',
+              margin: '0 auto',
+              padding: '0 1rem',
+              opacity: isRotating ? 0.6 : 1,
+              transform: isRotating ? 'scale(0.98)' : 'scale(1)',
+              transition: 'all 0.6s ease-in-out',
+              filter: isRotating ? 'blur(0.5px)' : 'blur(0px)'
             }}>
-              {players.map((player, index) => (
-                <div key={player.id} style={{
-                  background: 'linear-gradient(135deg, rgba(0,255,135,0.12) 0%, rgba(96,239,255,0.08) 100%)',
-                  borderRadius: '16px',
-                  padding: '1.5rem',
-                  border: '1px solid rgba(96,239,255,0.25)',
-                  textAlign: 'center',
-                  transition: 'all 0.3s ease',
-                  position: 'relative',
-                  overflow: 'hidden'
-                }}>
-                  {/* Player number badge */}
-                  <div style={{
-                    position: 'absolute',
-                    top: '0.5rem',
-                    right: '0.5rem',
-                    background: 'rgba(96,239,255,0.3)',
-                    borderRadius: '50%',
-                    width: '1.5rem',
-                    height: '1.5rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '0.75rem',
-                    fontWeight: '600',
-                    color: '#60efff'
-                  }}>
-                    {index + 1}
-                  </div>
-                  
-                  {/* Player avatar/icon */}
-                  <div style={{
-                    width: '3rem',
-                    height: '3rem',
-                    borderRadius: '50%',
-                    background: 'linear-gradient(135deg, #60efff 0%, #00ff87 100%)',
-                    margin: '0 auto 0.8rem auto',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '1.5rem',
-                    boxShadow: '0 2px 8px rgba(0,255,135,0.3)'
-                  }}>
-                    🎵
-                  </div>
-                  
-                  {/* Player name */}
-                  <div style={{
-                    fontSize: '1.2rem',
-                    fontWeight: '600',
-                    color: '#fff',
-                    marginBottom: '0.3rem',
-                    wordBreak: 'break-word',
-                    lineHeight: '1.2'
-                  }}>
-                    {player.name}
-                  </div>
-                  
-                  {/* Status indicator */}
-                  <div style={{
-                    fontSize: '0.8rem',
-                    color: '#00ff87',
-                    fontWeight: '500',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px'
-                  }}>
-                    Ready
-                  </div>
-                </div>
-              ))}
-              
-              {/* Placeholder slots for remaining spots */}
-              {Array.from({ length: 6 - players.length }).map((_, index) => (
-                <div key={`placeholder-${index}`} style={{
-                  background: 'rgba(255,255,255,0.03)',
-                  borderRadius: '16px',
-                  padding: '1.5rem',
-                  border: '1px dashed rgba(160,160,160,0.2)',
-                  textAlign: 'center',
-                  opacity: 0.4
-                }}>
-                  <div style={{
-                    width: '3rem',
-                    height: '3rem',
-                    borderRadius: '50%',
-                    background: 'rgba(160,160,160,0.1)',
-                    margin: '0 auto 0.8rem auto',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '1.2rem',
-                    color: '#666'
-                  }}>
-                    👤
-                  </div>
-                  <div style={{
-                    fontSize: '1rem',
-                    color: '#666',
-                    fontStyle: 'italic',
-                    marginBottom: '0.3rem'
-                  }}>
-                    Waiting...
-                  </div>
-                  <div style={{
-                    fontSize: '0.8rem',
-                    color: '#555'
-                  }}>
-                    Empty Slot
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            // Carousel for 7+ players
-            <div style={{
-              position: 'relative',
-              height: '250px',
-              overflow: 'hidden'
-            }}>
-              <div style={{
-                display: 'flex',
-                gap: '1.5rem',
-                transform: `translateX(-${scrollPosition}px)`,
-                transition: 'transform 1s ease-in-out',
-                paddingBottom: '1rem'
-              }}>
-                {players.map((player, index) => (
-                  <div key={player.id} style={{
-                    minWidth: '240px',
-                    maxWidth: '240px',
-                    background: 'linear-gradient(135deg, rgba(0,255,135,0.12) 0%, rgba(96,239,255,0.08) 100%)',
-                    borderRadius: '16px',
-                    padding: '1.5rem',
-                    border: '1px solid rgba(96,239,255,0.25)',
+              {Array.from({ length: 6 }).map((_, slotIndex) => {
+                const player = visiblePlayers[slotIndex];
+                const isEmpty = !player;
+                
+                return (
+                  <div key={slotIndex} style={{
+                    background: isEmpty 
+                      ? 'rgba(255,255,255,0.03)' 
+                      : 'linear-gradient(135deg, rgba(0,255,135,0.12) 0%, rgba(96,239,255,0.08) 100%)',
+                    borderRadius: '12px',
+                    padding: '1rem',
+                    border: isEmpty 
+                      ? '1px dashed rgba(160,160,160,0.2)' 
+                      : '1px solid rgba(96,239,255,0.25)',
                     textAlign: 'center',
-                    transition: 'all 0.3s ease',
-                    flexShrink: 0,
+                    transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
                     position: 'relative',
-                    overflow: 'hidden'
+                    overflow: 'hidden',
+                    minHeight: '120px',
+                    opacity: isEmpty ? 0.4 : 1,
+                    transform: isEmpty ? 'scale(0.95)' : 'scale(1)'
                   }}>
-                    {/* Player number badge */}
-                    <div style={{
-                      position: 'absolute',
-                      top: '0.5rem',
-                      right: '0.5rem',
-                      background: 'rgba(96,239,255,0.3)',
-                      borderRadius: '50%',
-                      width: '1.5rem',
-                      height: '1.5rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '0.75rem',
-                      fontWeight: '600',
-                      color: '#60efff'
-                    }}>
-                      {index + 1}
-                    </div>
-                    
-                    {/* Player avatar/icon */}
-                    <div style={{
-                      width: '3rem',
-                      height: '3rem',
-                      borderRadius: '50%',
-                      background: 'linear-gradient(135deg, #60efff 0%, #00ff87 100%)',
-                      margin: '0 auto 0.8rem auto',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '1.5rem',
-                      boxShadow: '0 2px 8px rgba(0,255,135,0.3)'
-                    }}>
-                      🎵
-                    </div>
-                    
-                    {/* Player name */}
-                    <div style={{
-                      fontSize: '1.2rem',
-                      fontWeight: '600',
-                      color: '#fff',
-                      marginBottom: '0.3rem',
-                      wordBreak: 'break-word',
-                      lineHeight: '1.2'
-                    }}>
-                      {player.name}
-                    </div>
-                    
-                    {/* Status indicator */}
-                    <div style={{
-                      fontSize: '0.8rem',
-                      color: '#00ff87',
-                      fontWeight: '500',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.5px'
-                    }}>
-                      Ready
-                    </div>
+                    {!isEmpty ? (
+                      <>
+                        {/* Player number badge */}
+                        <div style={{
+                          position: 'absolute',
+                          top: '0.4rem',
+                          right: '0.4rem',
+                          background: 'rgba(96,239,255,0.3)',
+                          borderRadius: '50%',
+                          width: '1.2rem',
+                          height: '1.2rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '0.7rem',
+                          fontWeight: '600',
+                          color: '#60efff'
+                        }}>
+                          {players.findIndex(p => p.id === player.id) + 1}
+                        </div>
+                        
+                        {/* Sparkle effect for new/rotating players */}
+                        {players.length > 6 && (
+                          <div style={{
+                            position: 'absolute',
+                            top: '0.2rem',
+                            left: '0.2rem',
+                            fontSize: '0.8rem',
+                            opacity: 0.6,
+                            animation: 'sparkle 2s ease-in-out infinite'
+                          }}>
+                            ✨
+                          </div>
+                        )}
+                        
+                        {/* Player avatar/icon */}
+                        <div style={{
+                          width: '2.2rem',
+                          height: '2.2rem',
+                          borderRadius: '50%',
+                          background: 'linear-gradient(135deg, #60efff 0%, #00ff87 100%)',
+                          margin: '0 auto 0.6rem auto',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '1.1rem',
+                          boxShadow: '0 2px 8px rgba(0,255,135,0.3)'
+                        }}>
+                          🎵
+                        </div>
+                        
+                        {/* Player name */}
+                        <div style={{
+                          fontSize: '1rem',
+                          fontWeight: '600',
+                          color: '#fff',
+                          marginBottom: '0.3rem',
+                          wordBreak: 'break-word',
+                          lineHeight: '1.2'
+                        }}>
+                          {player.name}
+                        </div>
+                        
+                        {/* Status indicator */}
+                        <div style={{
+                          fontSize: '0.7rem',
+                          color: '#00ff87',
+                          fontWeight: '500',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.5px'
+                        }}>
+                          Ready
+                        </div>
+                      </>
+                    ) : (
+                      // Empty slot
+                      <>
+                        <div style={{
+                          width: '2.2rem',
+                          height: '2.2rem',
+                          borderRadius: '50%',
+                          background: 'rgba(160,160,160,0.1)',
+                          margin: '0 auto 0.6rem auto',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '1rem',
+                          color: '#666'
+                        }}>
+                          👤
+                        </div>
+                        <div style={{
+                          fontSize: '0.9rem',
+                          color: '#666',
+                          fontStyle: 'italic',
+                          marginBottom: '0.3rem'
+                        }}>
+                          Waiting...
+                        </div>
+                        <div style={{
+                          fontSize: '0.7rem',
+                          color: '#555'
+                        }}>
+                          Empty Slot
+                        </div>
+                      </>
+                    )}
                   </div>
-                ))}
-              </div>
-              
-              {/* Scroll indicators */}
-              <div style={{
-                position: 'absolute',
-                bottom: '0.5rem',
-                left: '50%',
-                transform: 'translateX(-50%)',
-                display: 'flex',
-                gap: '0.5rem'
-              }}>
-                {Array.from({ length: Math.ceil(players.length / 3) }).map((_, index) => (
-                  <div key={index} style={{
-                    width: '0.5rem',
-                    height: '0.5rem',
-                    borderRadius: '50%',
-                    background: index === Math.floor(scrollPosition / (3 * 260)) 
-                      ? '#60efff' 
-                      : 'rgba(160,160,160,0.3)',
-                    transition: 'background 0.3s ease'
-                  }} />
-                ))}
-              </div>
+                );
+              })}
             </div>
           )}
         </div>
@@ -2260,7 +2195,7 @@ function GameLobby({ gameData, onBack, onStartGame, socket }) {
           display: 'flex',
           gap: '2rem',
           justifyContent: 'center',
-          marginTop: '2rem'
+          marginTop: '1rem'
         }}>
           <button
             onClick={handleStartGame}
@@ -2287,6 +2222,20 @@ function GameLobby({ gameData, onBack, onStartGame, socket }) {
           </button>
         </div>
       </div>
+
+      {/* Add sparkle animation */}
+      <style>{`
+        @keyframes sparkle {
+          0%, 100% { 
+            opacity: 0.3; 
+            transform: scale(1); 
+          }
+          50% { 
+            opacity: 0.8; 
+            transform: scale(1.2); 
+          }
+        }
+      `}</style>
     </div>
   );
 }
@@ -2379,8 +2328,25 @@ function App() {
 
   // Handle player joining game (we'll implement this next step)
   const handlePlayerJoin = async (joinData) => {
-    console.log('🎮 Player trying to join:', joinData);
-    // We'll add socket logic here in the next step
+    if (!socket) {
+      return;
+    }
+
+    // Set up socket listeners for join response
+    socket.once('join-success', (data) => {
+      setPlayerData(data);
+      setUserType('player');
+      setScreen('playerLobby'); // We'll create this screen in Step 8
+    });
+
+    socket.once('join-error', (error) => {
+    });
+
+    // Emit join request to server
+    socket.emit('player-join-game', {
+      gameId: joinData.joinCode,
+      playerName: joinData.playerName
+    });
   };
 
   // Handle going back from lobby
