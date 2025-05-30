@@ -438,6 +438,23 @@ io.on('connection', (socket) => {
         }
       });
 
+      socket.on('gameStarted', (roundIntroData) => {
+        console.log('🚀 Server: Game started with intro data:', roundIntroData);
+        console.log('🚀 Server: Broadcasting to room:', socket.gameId);
+        
+        io.to(socket.gameId).emit('gameStarted', {
+          roundIntroData: roundIntroData
+        });
+      });
+  
+      socket.on('roundStarted', (fullRoundSettings) => {
+        console.log('🚀 Server: Round started with full settings:', fullRoundSettings);
+        
+        io.to(socket.gameId).emit('roundStarted', {
+          roundSettings: fullRoundSettings
+        });
+      });
+
   });
 
 // Start server

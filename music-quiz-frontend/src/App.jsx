@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import './App.css'
 import useSocket from './hooks/useSocket';
 import PlayerJoinScreen from './components/PlayerJoinScreen';
+import RoundIntroScreen from './components/RoundIntroScreen';
 
 // Staff line Y positions (relative to SVG viewBox)
 const STAFF_CENTER = 60;
@@ -2709,6 +2710,7 @@ function QuizCreationScreen({ onBack, onGameCreated }) {
   const [savedRounds, setSavedRounds] = useState([]);
   const [errorAnim, setErrorAnim] = useState(false);
   const [screen, setScreen] = useState('rounds'); // 'rounds' or 'settings'
+  const [isHost, setIsHost] = useState(false);
 
 
   function handleRoundCountChange(newCount) {
@@ -2770,10 +2772,32 @@ function App() {
   const [userType, setUserType] = useState(null);
   const {socket, isConnected} = useSocket();
   const [joinError, setJoinError] = useState('');
+  const [currentRoundIndex, setCurrentRoundIndex] = useState(0);
+  const [isHost, setIsHost] = useState(false);
+  const [currentRoundData, setCurrentRoundData] = useState(null);
+
+
+  // Add this useEffect in your App component
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleGameStarted = (data) => {
+      console.log('📥 PLAYER: Game started, received round data:', data.roundIntroData);
+      setCurrentRoundData(data.roundIntroData);
+      setScreen('roundIntro');
+    };
+
+    socket.on('gameStarted', handleGameStarted);
+
+    return () => {
+      socket.off('gameStarted', handleGameStarted);
+    };
+  }, [socket]);
 
   // Handle successful game creation
   const handleGameCreated = (gameSession) => {
     setGameData(gameSession);
+    setIsHost(true);
     setScreen('lobby');
   };
 
@@ -2831,7 +2855,20 @@ function App() {
 
   // Handle starting the actual game
   const handleStartGame = async () => {
-    setScreen('playing');
+    // When host starts the game, send round data to all players
+    if (socket && isHost) {
+      const roundDataToSend = {
+        roundNumber: currentRoundIndex + 1,
+        roundName: gameData?.rounds?.[currentRoundIndex]?.name || "Quick Fire",
+        description: gameData?.rounds?.[currentRoundIndex]?.description || "Get ready to play!",
+        ...gameData?.rounds?.[currentRoundIndex]
+      };
+      
+      console.log('📤 HOST: Starting game with round data:', roundDataToSend);
+      socket.emit('gameStarted', roundDataToSend);  // Use 'gameStarted' not 'startRound'
+    }
+    
+    setScreen('roundIntro');
   };
 
   return (
@@ -2886,7 +2923,7 @@ function App() {
         <PlayerLobbyScreen 
           playerData={playerData}
           socket={socket}
-          onGameStart={() => setScreen('playing')}
+          onGameStart={() => setScreen('roundIntro')}
           onLeaveGame={(errorData = null) => {
             setScreen('playerJoin');
             setPlayerData(null);
@@ -2898,6 +2935,40 @@ function App() {
           }}
         />
       )}
+
+      {screen === 'roundIntro' && (
+        <RoundIntroScreen 
+          isHost={isHost}
+          roundData={
+            isHost 
+              ? {
+                  roundNumber: currentRoundIndex + 1,
+                  roundName: gameData?.rounds?.[currentRoundIndex]?.name || "Quick Fire",
+                  description: gameData?.rounds?.[currentRoundIndex]?.description || "Get ready to play!"
+                }
+              : currentRoundData || {
+                  roundNumber: 1,
+                  roundName: "Quick Fire",
+                  description: "Get ready to play!"
+                }
+          }
+          socket={socket}
+          onRoundStart={() => {
+            if (isHost) {
+              // Host: send round data to all players
+              const roundDataToSend = {
+                roundNumber: currentRoundIndex + 1,
+                roundName: gameData?.rounds?.[currentRoundIndex]?.name || "Quick Fire",
+                description: gameData?.rounds?.[currentRoundIndex]?.description || "Get ready to play!",
+                ...gameData?.rounds?.[currentRoundIndex]
+              };
+              console.log('📤 Host sending round data:', roundDataToSend);
+              socket.emit('startRound', roundDataToSend);
+            }
+            setScreen('gameQuestion');
+          }}
+        />
+      )}  
     </div>
   );
 }
