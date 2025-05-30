@@ -1,6 +1,6 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 
-function PlayerJoinScreen({ onJoinGame, onBack }) {
+function PlayerJoinScreen({ onJoinGame, onBack, gameError, onClearError }) {
   const [joinCode, setJoinCode] = useState('');
   const [playerName, setPlayerName] = useState('');
   const [step, setStep] = useState(1); // 1: Enter code, 2: Enter name
@@ -100,6 +100,25 @@ function PlayerJoinScreen({ onJoinGame, onBack }) {
               </div>
             </div>
 
+            {gameError && gameError.includes('cancelled') && (
+                <div style={{
+                    background: 'rgba(255, 107, 157, 0.1)',
+                    border: '2px solid rgba(255, 107, 157, 0.4)',
+                    borderRadius: '12px',
+                    padding: '1rem 1.5rem',
+                    margin: '2rem auto',
+                    maxWidth: '500px',
+                    color: '#ff6b9d',
+                    textAlign: 'center',
+                    fontSize: '1.1rem',
+                    fontWeight: '600',
+                    boxShadow: '0 4px 12px rgba(255, 107, 157, 0.2)',
+                    animation: 'fadeIn 0.3s ease-in-out'
+                }}>
+                    ❌ {gameError}
+                </div>
+            )}
+
             <div style={{
               maxWidth: '400px',
               margin: '0 auto'
@@ -193,7 +212,13 @@ function PlayerJoinScreen({ onJoinGame, onBack }) {
                   ref={inputRef}
                   type="text"
                   value={joinCode}
-                  onChange={(e) => setJoinCode(e.target.value.toUpperCase().slice(0, 6))}
+                  onChange={(e) => {
+                    setJoinCode(e.target.value.toUpperCase().slice(0, 6));
+                    // Clear error when user starts typing
+                    if (gameError && onClearError) {
+                      onClearError();
+                    }
+                  }}
                   onKeyPress={(e) => handleKeyPress(e, handleCodeSubmit)}
                   onFocus={handleInputFocus}
                   onBlur={handleInputBlur}
@@ -288,7 +313,13 @@ function PlayerJoinScreen({ onJoinGame, onBack }) {
                 <input
                   type="text"
                   value={playerName}
-                  onChange={(e) => setPlayerName(e.target.value)}
+                  onChange={(e) => {
+                    setPlayerName(e.target.value);
+                    // Clear error when user starts typing
+                    if (gameError && onClearError) {
+                      onClearError();
+                    }
+                  }}
                   onKeyPress={(e) => handleKeyPress(e, handleNameSubmit)}
                   placeholder="Your Name"
                   maxLength={20}
@@ -335,10 +366,14 @@ function PlayerJoinScreen({ onJoinGame, onBack }) {
 
       <style>{`
         @keyframes blink {
-          0%, 50% { opacity: 1; }
-          51%, 100% { opacity: 0; }
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
         }
-      `}</style>
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        `}</style>
     </div>
   );
 }

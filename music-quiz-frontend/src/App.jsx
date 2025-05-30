@@ -1908,16 +1908,23 @@ function GameLobby({ gameData, onBack, onStartGame, socket }) {
       onStartGame(); // Transition to game screen
     };
 
+    const handleGameCanceled = (data) => {
+      console.log('🚫 Game cancelled:', data.message);
+      onBack();
+    };
+
     // Add event listeners
     socket.on('players-updated', handlePlayersUpdated);
     socket.on('game-starting', handleGameStarting);
     socket.on('game-started', handleGameStarted);
+    socket.on('game-cancelled', handleGameCanceled);
 
     // Cleanup listeners on unmount
     return () => {
       socket.off('players-updated', handlePlayersUpdated);
       socket.off('game-starting', handleGameStarting);
       socket.off('game-started', handleGameStarted);
+      socket.off('game-cancelled', handleGameCanceled);
     };
   }, [socket, gameData, onStartGame]);
 
@@ -1961,9 +1968,16 @@ function GameLobby({ gameData, onBack, onStartGame, socket }) {
     socket.emit('start-game', { gameId: gameData.joinCode });
   };
 
+  const handleCancelGame = () => {
+    if (socket && gameData) {
+      socket.emit('host-cancel-game', { gameId: gameData.joinCode });
+    }
+    onBack();
+  };
+
   return (
     <div className="quiz-creation-screen" style={{ overflowY: 'visible' }}>
-      <button className="back-btn" onClick={onBack}>
+      <button className="back-btn" onClick={handleCancelGame}>
         <span className="back-arrow" aria-hidden="true">&#8592;</span> Cancel Game
       </button>
 
@@ -2240,6 +2254,454 @@ function GameLobby({ gameData, onBack, onStartGame, socket }) {
   );
 }
 
+function PlayerLobbyScreen({ playerData, socket, onGameStart, onLeaveGame }) {
+  const [players, setPlayers] = useState([]);
+  const [gameStatus, setGameStatus] = useState('lobby');
+  const [visiblePlayers, setVisiblePlayers] = useState([]);
+  const [isRotating, setIsRotating] = useState(false);
+  const [countdown, setCountdown] = useState(null);
+
+  // Debug logging
+  useEffect(() => {
+    console.log('👤 Player data:', playerData);
+    console.log('👥 Players list:', players);
+    console.log('🎮 Game status:', gameStatus);
+    console.log('⏰ Countdown:', countdown);
+  }, [playerData, players, gameStatus, countdown]);
+
+  // Socket.IO event listeners for players
+  useEffect(() => {
+    if (!socket || !playerData) {
+      return;
+    }
+
+    // Listen for player updates
+    const handlePlayersUpdated = (data) => {
+      console.log('👥 Player sees players updated:', data.players);
+      setPlayers(data.players);
+    };
+
+    // Listen for game start events
+    const handleGameStarting = (data) => {
+      console.log('🚀 Player sees game starting in:', data.countdown);
+      setGameStatus('starting');
+      setCountdown(data.countdown);
+    };
+
+    // Listen for countdown updates
+    const handleCountdownUpdate = (data) => {
+      console.log('⏰ Countdown update:', data.countdown);
+      setCountdown(data.countdown);
+    };
+
+    const handleGameStarted = (data) => {
+      console.log('✅ Player sees game started!', data.message);
+      setGameStatus('active');
+      onGameStart(); // Transition to game screen
+    };
+
+    const handleGameCanceled = (data) => {
+      console.log('🚫 Game cancelled:', data.message);
+      onLeaveGame({ 
+        error: data.message, 
+        type: 'cancelled' 
+      }); // Use onLeaveGame instead of onBack for players
+    };
+
+    // Add event listeners
+    socket.on('players-updated', handlePlayersUpdated);
+    socket.on('game-starting', handleGameStarting);
+    socket.on('countdown-update', handleCountdownUpdate); // NEW: Listen for countdown updates
+    socket.on('game-started', handleGameStarted);
+    socket.on('game-cancelled', handleGameCanceled);
+
+    // Cleanup listeners on unmount
+    return () => {
+      socket.off('players-updated', handlePlayersUpdated);
+      socket.off('game-starting', handleGameStarting);
+      socket.off('countdown-update', handleCountdownUpdate);
+      socket.off('game-started', handleGameStarted);
+      socket.off('game-cancelled', handleGameCanceled);
+    };
+  }, [socket, playerData, onGameStart, onLeaveGame]);
+
+  // Update visible players when players change (same rotation logic as host)
+  useEffect(() => {
+    if (players.length <= 6) {
+      setVisiblePlayers(players);
+    } else {
+      // If we have more than 6, show newest player immediately and fill rest randomly
+      const newestPlayer = players[players.length - 1];
+      const otherPlayers = players.slice(0, players.length - 1);
+      const shuffled = [...otherPlayers].sort(() => Math.random() - 0.5);
+      const selected = [newestPlayer, ...shuffled.slice(0, 5)];
+      setVisiblePlayers(selected);
+    }
+  }, [players]);
+
+  // Auto-rotation effect for 7+ players (same as host)
+  useEffect(() => {
+    if (players.length <= 6) return;
+
+    const rotateInterval = setInterval(() => {
+      setIsRotating(true);
+      
+      setTimeout(() => {
+        const shuffled = [...players].sort(() => Math.random() - 0.5);
+        setVisiblePlayers(shuffled.slice(0, 6));
+        setIsRotating(false);
+      }, 600);
+    }, 5000);
+
+    return () => clearInterval(rotateInterval);
+  }, [players]);
+
+  // Handle leaving game
+  const handleLeaveGame = () => {
+    if (socket && playerData) {
+      socket.emit('player-leave-game', { 
+        gameId: playerData.gameId, 
+        playerId: playerData.playerId 
+      });
+    }
+    onLeaveGame();
+  };
+
+  // Find current player in the list
+  const currentPlayer = players.find(p => p.id === playerData?.playerId);
+  const playerPosition = currentPlayer ? players.findIndex(p => p.id === playerData.playerId) + 1 : '?';
+
+  // Get max players from game data or default
+  const maxPlayers = playerData?.maxPlayers || playerData?.gameSettings?.maxPlayers || 8;
+
+  return (
+    <div className="quiz-creation-screen" style={{ overflowY: 'visible' }}>
+      <button className="back-btn" onClick={handleLeaveGame}>
+        <span className="back-arrow" aria-hidden="true">&#8592;</span> Leave Game
+      </button>
+
+      <div className="quiz-creation-center-area" style={{ paddingTop: '0' }}>
+        
+        {/* Welcome Message */}
+        <div style={{
+          textAlign: 'center',
+          marginBottom: '2rem',
+          paddingTop: '0.25rem',
+          marginTop: '-3.75rem'
+        }}>
+          <div style={{
+            fontSize: '3.5rem',
+            color: '#00ff87',
+            fontWeight: '700',
+            marginBottom: '0rem',
+            textShadow: '0 2px 8px rgba(0,255,135,0.4)'
+          }}>
+            You're In! 🎉
+          </div>
+          
+          <div style={{
+            fontSize: '1.2rem',
+            color: '#a0a0a0',
+            marginBottom: '0.2rem'
+          }}>
+            Game Code: <span style={{ color: '#60efff', fontWeight: '600' }}>{playerData?.gameId}</span>
+          </div>
+          
+          <div style={{
+            fontSize: '1.4rem',
+            fontWeight: '600',
+            color: '#fff',
+            marginBottom: '0.5rem'
+          }}>
+            Welcome, {playerData?.playerName}! 
+          </div>
+
+          <div style={{
+            fontSize: '1rem',
+            color: '#60efff',
+            fontWeight: '500'
+          }}>
+            You're player #{playerPosition}
+          </div>
+        </div>
+
+        {/* Player List Section - Same as host but different header */}
+        <div style={{
+          background: 'rgba(24, 30, 42, 0.95)',
+          borderRadius: '24px',
+          padding: '1rem 2rem',
+          minWidth: '750px',
+          maxWidth: '750px',
+          margin: '-1rem auto 0.125rem auto',
+          border: '1.5px solid #60efff22',
+          boxShadow: '0 8px 32px rgba(0,255,135,0.10)',
+          minHeight: '220px',
+          overflow: 'hidden'
+        }}>
+          <div style={{
+            fontSize: '2rem',
+            fontWeight: '700',
+            color: '#60efff',
+            textAlign: 'center',
+            marginBottom: '1.25rem'
+          }}>
+            Players in Lobby ({players.length}/{maxPlayers})
+          </div>
+
+          {players.length === 0 ? (
+            <div style={{
+              textAlign: 'center',
+              color: '#a0a0a0',
+              fontSize: '1.3rem',
+              padding: '3.75rem 2rem',
+              fontStyle: 'italic'
+            }}>
+              Loading players...
+            </div>
+          ) : (
+            // Same Kahoot-style rotating grid
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, 1fr)',
+              gridTemplateRows: 'repeat(2, 1fr)',
+              gap: '1rem',
+              maxWidth: '600px',
+              margin: '0 auto',
+              padding: '0 1rem',
+              opacity: isRotating ? 0.6 : 1,
+              transform: isRotating ? 'scale(0.98)' : 'scale(1)',
+              transition: 'all 0.6s ease-in-out',
+              filter: isRotating ? 'blur(0.5px)' : 'blur(0px)'
+            }}>
+              {Array.from({ length: 6 }).map((_, slotIndex) => {
+                const player = visiblePlayers[slotIndex];
+                const isEmpty = !player;
+                const isCurrentPlayer = player?.id === playerData?.playerId;
+                
+                return (
+                  <div key={slotIndex} style={{
+                    background: isEmpty 
+                      ? 'rgba(255,255,255,0.03)' 
+                      : isCurrentPlayer
+                        ? 'linear-gradient(135deg, rgba(255,107,157,0.15) 0%, rgba(96,239,255,0.12) 100%)'
+                        : 'linear-gradient(135deg, rgba(0,255,135,0.12) 0%, rgba(96,239,255,0.08) 100%)',
+                    borderRadius: '12px',
+                    padding: '1rem',
+                    border: isEmpty 
+                      ? '1px dashed rgba(160,160,160,0.2)' 
+                      : isCurrentPlayer
+                        ? '2px solid rgba(255,107,157,0.4)'
+                        : '1px solid rgba(96,239,255,0.25)',
+                    textAlign: 'center',
+                    transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    minHeight: '120px',
+                    opacity: isEmpty ? 0.4 : 1,
+                    transform: isEmpty ? 'scale(0.95)' : 'scale(1)'
+                  }}>
+                    {!isEmpty ? (
+                      <>
+                        {/* Player number badge */}
+                        <div style={{
+                          position: 'absolute',
+                          top: '0.4rem',
+                          right: '0.4rem',
+                          background: isCurrentPlayer 
+                            ? 'rgba(255,107,157,0.4)' 
+                            : 'rgba(96,239,255,0.3)',
+                          borderRadius: '50%',
+                          width: '1.2rem',
+                          height: '1.2rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '0.7rem',
+                          fontWeight: '600',
+                          color: isCurrentPlayer ? '#ff6b9d' : '#60efff'
+                        }}>
+                          {players.findIndex(p => p.id === player.id) + 1}
+                        </div>
+
+                        {/* "YOU" indicator */}
+                        {isCurrentPlayer && (
+                          <div style={{
+                            position: 'absolute',
+                            top: '0.4rem',
+                            left: '0.4rem',
+                            background: 'rgba(255,107,157,0.3)',
+                            borderRadius: '8px',
+                            padding: '0.2rem 0.4rem',
+                            fontSize: '0.6rem',
+                            fontWeight: '700',
+                            color: '#ff6b9d',
+                            textTransform: 'uppercase'
+                          }}>
+                            YOU
+                          </div>
+                        )}
+                        
+                        {/* Sparkle effect for rotating players */}
+                        {players.length > 6 && !isCurrentPlayer && (
+                          <div style={{
+                            position: 'absolute',
+                            top: '0.2rem',
+                            left: '0.2rem',
+                            fontSize: '0.8rem',
+                            opacity: 0.6,
+                            animation: 'sparkle 2s ease-in-out infinite'
+                          }}>
+                            ✨
+                          </div>
+                        )}
+                        
+                        {/* Player avatar/icon */}
+                        <div style={{
+                          width: '2.2rem',
+                          height: '2.2rem',
+                          borderRadius: '50%',
+                          background: isCurrentPlayer
+                            ? 'linear-gradient(135deg, #ff6b9d 0%, #60efff 100%)'
+                            : 'linear-gradient(135deg, #60efff 0%, #00ff87 100%)',
+                          margin: '0 auto 0.6rem auto',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '1.1rem',
+                          boxShadow: isCurrentPlayer 
+                            ? '0 2px 8px rgba(255,107,157,0.3)'
+                            : '0 2px 8px rgba(0,255,135,0.3)'
+                        }}>
+                          {isCurrentPlayer ? '⭐' : '🎵'}
+                        </div>
+                        
+                        {/* Player name */}
+                        <div style={{
+                          fontSize: '1rem',
+                          fontWeight: '600',
+                          color: '#fff',
+                          marginBottom: '0.3rem',
+                          wordBreak: 'break-word',
+                          lineHeight: '1.2'
+                        }}>
+                          {player.name}
+                        </div>
+                        
+                        {/* Status indicator */}
+                        <div style={{
+                          fontSize: '0.7rem',
+                          color: isCurrentPlayer ? '#ff6b9d' : '#00ff87',
+                          fontWeight: '500',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.5px'
+                        }}>
+                          {isCurrentPlayer ? 'You' : 'Ready'}
+                        </div>
+                      </>
+                    ) : (
+                      // Empty slot
+                      <>
+                        <div style={{
+                          width: '2.2rem',
+                          height: '2.2rem',
+                          borderRadius: '50%',
+                          background: 'rgba(160,160,160,0.1)',
+                          margin: '0 auto 0.6rem auto',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '1rem',
+                          color: '#666'
+                        }}>
+                          👤
+                        </div>
+                        <div style={{
+                          fontSize: '0.9rem',
+                          color: '#666',
+                          fontStyle: 'italic',
+                          marginBottom: '0.3rem'
+                        }}>
+                          Waiting...
+                        </div>
+                        <div style={{
+                          fontSize: '0.7rem',
+                          color: '#555'
+                        }}>
+                          Empty Slot
+                        </div>
+                      </>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Status Message */}
+        <div style={{
+          display: 'flex',
+          gap: '2rem',
+          justifyContent: 'center',
+          marginTop: '1rem'
+        }}>
+          {gameStatus === 'starting' && countdown !== null ? (
+            <div style={{
+              background: 'linear-gradient(135deg, #ff6b9d 0%, #60efff 100%)',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '12px',
+              padding: '1.2rem 2.5rem',
+              fontSize: '1.3rem',
+              fontWeight: '700',
+              boxShadow: '0 4px 16px rgba(255,107,157,0.3)',
+              textAlign: 'center',
+              animation: countdown <= 1 ? 'pulse 0.5s ease-in-out' : 'none'
+            }}>
+              🚀 Game Starting in {countdown}!
+            </div>
+          ) : (
+            <div style={{
+              background: 'rgba(96,239,255,0.1)',
+              color: '#60efff',
+              border: '1px solid rgba(96,239,255,0.2)',
+              borderRadius: '12px',
+              padding: '1.2rem 2.5rem',
+              fontSize: '1.3rem',
+              fontWeight: '600',
+              textAlign: 'center'
+            }}>
+              ⏳ Waiting for host to start the game...
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Add animations */}
+      <style>{`
+        @keyframes sparkle {
+          0%, 100% { 
+            opacity: 0.3; 
+            transform: scale(1); 
+          }
+          50% { 
+            opacity: 0.8; 
+            transform: scale(1.2); 
+          }
+        }
+        @keyframes pulse {
+          0%, 100% { 
+            transform: scale(1); 
+          }
+          50% { 
+            transform: scale(1.05); 
+          }
+        }
+      `}</style>
+    </div>
+  );
+}
+
 function QuizCreationScreen({ onBack, onGameCreated }) {
   const [roundCount, setRoundCount] = useState(3);
   const [openPanel, setOpenPanel] = useState(null);
@@ -2307,6 +2769,7 @@ function App() {
   const [playerData, setPlayerData] = useState(null);
   const [userType, setUserType] = useState(null);
   const {socket, isConnected} = useSocket();
+  const [joinError, setJoinError] = useState('');
 
   // Handle successful game creation
   const handleGameCreated = (gameSession) => {
@@ -2414,6 +2877,25 @@ function App() {
         <PlayerJoinScreen 
           onJoinGame={handlePlayerJoin}
           onBack={handleBackToLanding}
+          gameError={joinError}  // Add this prop
+          onClearError={() => setJoinError('')}  // Add this to clear error
+        />
+      )}
+
+      {screen === 'playerLobby' && (
+        <PlayerLobbyScreen 
+          playerData={playerData}
+          socket={socket}
+          onGameStart={() => setScreen('playing')}
+          onLeaveGame={(errorData = null) => {
+            setScreen('playerJoin');
+            setPlayerData(null);
+            
+            // If there's error data from game cancellation, store it
+            if (errorData && errorData.error) {
+              setJoinError(errorData.error);
+            }
+          }}
         />
       )}
     </div>

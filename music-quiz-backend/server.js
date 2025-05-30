@@ -251,77 +251,193 @@ io.on('connection', (socket) => {
         playerName: playerName,
         playerId: socket.id
       });
-      
-      // Notify all clients in the game about updated player list
-      io.to(gameId).emit('players-updated', {
-        players: game.players,
-        playerCount: game.players.length
+
+      socket.emit('players-updated', {
+        players: game.players
       });
+      
+      // DELAYED: Send to everyone (including room) after a tiny delay
+      setTimeout(() => {
+        io.to(gameId).emit('players-updated', {
+          players: game.players,
+          playerCount: game.players.length
+        });
+      }, 10);
+
+    });
+
+    // 1. PLAYER LEAVE GAME - Add this handler
+    socket.on('player-leave-game', (data) => {
+        const { gameId, playerId } = data;
+        console.log(`👋 Player ${playerId} requesting to leave game: ${gameId}`);
+        
+        const game = activeGames.get(gameId);
+        if (!game) {
+        console.log(`❌ Game ${gameId} not found for player leave`);
+        return;
+        }
+        
+        // Remove player from game
+        const playerIndex = game.players.findIndex(p => p.id === playerId);
+        if (playerIndex !== -1) {
+        const playerName = game.players[playerIndex].name;
+        game.players.splice(playerIndex, 1);
+        
+        console.log(`✅ Player "${playerName}" left game ${gameId}. Remaining: ${game.players.length}/${game.gameSettings.maxPlayers}`);
+        
+        // Leave socket room
+        socket.leave(gameId);
+        socket.gameId = null;
+        socket.playerName = null;
+        socket.isHost = false;
+        
+        // Notify remaining players
+        io.to(gameId).emit('players-updated', {
+            players: game.players,
+            playerCount: game.players.length
+        });
+        
+        // If no players left, clean up game
+        if (game.players.length === 0 && !game.hostSocketId) {
+            activeGames.delete(gameId);
+            console.log(`🗑️ Game ${gameId} deleted - no players remaining`);
+        }
+        }
     });
     
+    // 2. HOST CANCEL GAME - Add this handler  
+    socket.on('host-cancel-game', (data) => {
+        if (!socket.isHost) {
+        socket.emit('error', { message: 'Only host can cancel game' });
+        return;
+        }
+        
+        const { gameId } = data;
+        console.log(`🚫 Host canceling game: ${gameId}`);
+        
+        const game = activeGames.get(gameId);
+        if (game) {
+        // Notify all players game was cancelled
+        io.to(gameId).emit('game-cancelled', {
+            message: 'Host has cancelled the game'
+        });
+        
+        // Clean up game
+        activeGames.delete(gameId);
+        console.log(`🗑️ Game ${gameId} cancelled by host`);
+        }
+    });
+
+
     // Player disconnection
     socket.on('disconnect', () => {
-      console.log('🔌 Client disconnected:', socket.id);
-      
-      if (socket.gameId) {
-        const game = activeGames.get(socket.gameId);
-        if (game) {
-          if (socket.isHost) {
-            // Host disconnected - handle gracefully
-            console.log(`🎮 Host disconnected from game: ${socket.gameId}`);
-            game.hostSocketId = null;
-          } else if (socket.playerName) {
-            // Player disconnected - remove from game
-            const playerIndex = game.players.findIndex(p => p.id === socket.id);
-            if (playerIndex !== -1) {
-              game.players.splice(playerIndex, 1);
-              console.log(`👤 Player "${socket.playerName}" left game ${socket.gameId}. Players: ${game.players.length}/${game.gameSettings.maxPlayers}`);
+        console.log('🔌 Client disconnected:', socket.id);
+        
+        if (socket.gameId) {
+          const game = activeGames.get(socket.gameId);
+          if (game) {
+            if (socket.isHost) {
+              // HOST DISCONNECTED - Cancel entire game and kick everyone
+              console.log(`🚫 Host disconnected from game: ${socket.gameId} - CANCELING GAME`);
               
-              // Notify remaining players
-              io.to(socket.gameId).emit('players-updated', {
-                players: game.players,
-                playerCount: game.players.length
+              // Notify all players that game was cancelled due to host disconnect
+              io.to(socket.gameId).emit('game-cancelled', {
+                message: 'Game cancelled - Host disconnected'
               });
+              
+              // Delete the entire game
+              activeGames.delete(socket.gameId);
+              console.log(`🗑️ Game ${socket.gameId} deleted due to host disconnect`);
+              
+            } else if (socket.playerName) {
+              // PLAYER DISCONNECTED - Remove from game  
+              const playerIndex = game.players.findIndex(p => p.id === socket.id);
+              if (playerIndex !== -1) {
+                const playerName = game.players[playerIndex].name;
+                game.players.splice(playerIndex, 1);
+                
+                console.log(`👤 Player "${playerName}" disconnected from game ${socket.gameId}. Remaining: ${game.players.length}/${game.gameSettings.maxPlayers}`);
+                
+                // Notify remaining players
+                io.to(socket.gameId).emit('players-updated', {
+                  players: game.players,
+                  playerCount: game.players.length
+                });
+                
+                // If no players left, clean up game
+                if (game.players.length === 0 && !game.hostSocketId) {
+                    activeGames.delete(socket.gameId);
+                    console.log(`🗑️ Game ${socket.gameId} deleted - no host and no players remaining`);
+                }
+              }
             }
           }
         }
-      }
-    });
+      });
     
     // Game start (host only)
     socket.on('start-game', (data) => {
-      if (!socket.isHost) {
+        if (!socket.isHost) {
         socket.emit('error', { message: 'Only host can start game' });
         return;
-      }
-      
-      const game = activeGames.get(socket.gameId);
-      if (!game) {
+        }
+        
+        const game = activeGames.get(socket.gameId);
+        if (!game) {
         socket.emit('error', { message: 'Game not found' });
         return;
-      }
-      
-      if (game.players.length < 2) {
+        }
+        
+        if (game.players.length < 2) {
         socket.emit('error', { message: 'Need at least 2 players to start' });
         return;
-      }
-      
-      game.status = 'starting';
-      console.log(`🚀 Game ${socket.gameId} starting with ${game.players.length} players`);
-      
-      // Notify all players game is starting
-      io.to(socket.gameId).emit('game-starting', {
-        countdown: 3 // 3 second countdown
-      });
-      
-      // Start countdown
-      setTimeout(() => {
-        game.status = 'active';
-        io.to(socket.gameId).emit('game-started', {
-          message: 'Game has started!'
+        }
+        
+        game.status = 'starting';
+        console.log(`🚀 Game ${socket.gameId} starting with ${game.players.length} players`);
+        
+        // Start countdown with real-time updates
+        let countdown = 3;
+        
+        // Notify all players game is starting with initial countdown
+        io.to(socket.gameId).emit('game-starting', {
+        countdown: countdown
         });
-      }, 3000);
+        
+        // Create countdown interval that updates every second
+        const countdownInterval = setInterval(() => {
+        countdown--;
+        
+        // Emit countdown update to all players
+        io.to(socket.gameId).emit('countdown-update', { countdown });
+        
+        if (countdown === 0) {
+            clearInterval(countdownInterval);
+            game.status = 'active';
+            io.to(socket.gameId).emit('game-started', {
+            message: 'Game has started!'
+            });
+        }
+        }, 1000);
     });
+
+    socket.on('get-game-status', (data) => {
+        const { gameId } = data;
+        const game = activeGames.get(gameId);
+        
+        if (game) {
+          socket.emit('game-status', {
+            gameId: gameId,
+            status: game.status,
+            playerCount: game.players.length,
+            maxPlayers: game.gameSettings.maxPlayers,
+            players: game.players
+          });
+        } else {
+          socket.emit('game-status', { error: 'Game not found' });
+        }
+      });
+
   });
 
 // Start server
